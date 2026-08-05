@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Necessário para IHttpContextAccessor/HttpContext em Auth/CurrentUserService.cs,
+         já que este é um class library puro (Microsoft.NET.Sdk), não um Sdk.Web. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinancialMcp.Application\FinancialMcp.Application.csproj" />
+    <ProjectReference Include="..\FinancialMcp.Infrastructure.Persistence\FinancialMcp.Infrastructure.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

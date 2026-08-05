@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <UserSecretsId>financialmcp-api-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinancialMcp.ServiceDefaults\FinancialMcp.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\FinancialMcp.Application\FinancialMcp.Application.csproj" />
+    <ProjectReference Include="..\FinancialMcp.Infrastructure\FinancialMcp.Infrastructure.csproj" />
+    <ProjectReference Include="..\FinancialMcp.Infrastructure.Persistence\FinancialMcp.Infrastructure.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
