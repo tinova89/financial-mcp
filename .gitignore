@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+*.user
+.vs/
+.idea/
+
+## Aspire
+**/AppHost/bin/
+**/AppHost/obj/
+
+## Test results
+TestResults/
+
+## Secrets (nunca versionar)
+**/appsettings.*.local.json
+*.pfx
+/CLAUDE_OLD
