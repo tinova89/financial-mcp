@@ -1,51 +1,51 @@
 # CLAUDE.md
 
-Este arquivo guia o Claude Code ao trabalhar neste repositório. Mantenha-o atualizado conforme o projeto evoluir.
+This file guides Claude Code when working in this repository. Keep it up to date as the project evolves.
 
-## Visão Geral do Projeto
+## Project Overview
 
-Um **MCP Server** (Model Context Protocol) financeiro, exposto via **custom connector**, que permite ao Claude (via chat/Claude.ai, Claude Desktop, Claude Code etc.) **consultar, inserir e modificar** transações financeiras de:
+A financial **MCP Server** (Model Context Protocol), exposed via a **custom connector**, that lets Claude (via chat/Claude.ai, Claude Desktop, Claude Code, etc.) **query, insert, and modify** financial transactions for:
 
-- **Conta Corrente (CC)** — extratos bancários
-- **Cartão de Crédito (CD)** — faturas de cartão (Nubank, Bradesco, Sofisa, e futuros)
+- **Checking Account (CC)** — bank statements
+- **Credit Card (CD)** — card statements (Nubank, Bradesco, Sofisa, and future ones)
 
-O MCP também expõe ferramentas para **metas de orçamento** (`Meta_Valor` por categoria/mês) e **projeção de saldo**, aplicando as regras de negócio descritas na seção [Regras de Negócio](#regras-de-negócio-do-domínio-financeiro) abaixo — essas regras são a fonte de verdade para qualquer lógica de cálculo implementada no backend e **devem** ser mantidas sincronizadas com o comportamento real do código.
+The MCP also exposes tools for **budget goals** (`Meta_Valor` per category/month) and **balance projection**, applying the business rules described in the [Business Rules](#financial-domain-business-rules) section below — these rules are the source of truth for any calculation logic implemented in the backend and **must** be kept in sync with the code's actual behavior.
 
-Construído com:
-- **Backend:** .NET 10, orquestrado via .NET Aspire
-- **Orquestração:** .NET Aspire AppHost para desenvolvimento local, service discovery e observabilidade
-- **Persistência:** PostgreSQL (via EF Core + Npgsql), provisionado como recurso Aspire (`AddPostgres`/`AddDatabase`)
-- **Auth:** provedor JWT customizado (emissão e validação próprias em `FinancialMcp.Api`/`FinancialMcp.Application`, sem Identity/Entra ID)
-- **Protocolo:** MCP (Model Context Protocol) sobre o mesmo host da API, autenticado via JWT bearer
+Built with:
+- **Backend:** .NET 10, orchestrated via .NET Aspire
+- **Orchestration:** .NET Aspire AppHost for local development, service discovery, and observability
+- **Persistence:** PostgreSQL (via EF Core + Npgsql), provisioned as an Aspire resource (`AddPostgres`/`AddDatabase`)
+- **Auth:** custom JWT provider (its own issuance and validation in `FinancialMcp.Api`/`FinancialMcp.Application`, no Identity/Entra ID)
+- **Protocol:** MCP (Model Context Protocol) over the same API host, authenticated via JWT bearer
 
-> Documentação relacionada (fora deste arquivo) pode ser referenciada livremente por link relativo — ver [Vinculando Outros Artefatos e Docs](#vinculando-outros-artefatos-e-docs).
+> Related documentation (outside this file) can be freely referenced via relative link — see [Linking Other Artifacts and Docs](#linking-other-artifacts-and-docs).
 
-## Estrutura da Solução
+## Solution Structure
 
 ```
 /FinancialMcp.sln
 /src
-  /FinancialMcp.AppHost            -> Projeto de orquestração Aspire (entry point para `dotnet run`)
-  /FinancialMcp.ServiceDefaults    -> Defaults compartilhados do Aspire (health checks, telemetria, resiliência)
-  /FinancialMcp.Api                -> ASP.NET Core Web API + MCP Server host (+ SignalR Hub, se necessário para updates em tempo real)
-  /FinancialMcp.Application        -> Lógica de aplicação/negócio (use cases, services, ferramentas MCP)
-  /FinancialMcp.Domain              -> Entidades de domínio, value objects (Transação, Conta, Cartão, MetaOrçamento)
-  /FinancialMcp.Infrastructure      -> EF Core, persistência, importação/parsing de extratos CSV, integrações externas
+  /FinancialMcp.AppHost            -> Aspire orchestration project (entry point for `dotnet run`)
+  /FinancialMcp.ServiceDefaults    -> Shared Aspire defaults (health checks, telemetry, resilience)
+  /FinancialMcp.Api                -> ASP.NET Core Web API + MCP Server host (+ SignalR Hub, if needed for real-time updates)
+  /FinancialMcp.Application        -> Application/business logic (use cases, services, MCP tools)
+  /FinancialMcp.Domain              -> Domain entities, value objects (Transaction, Account, Card, BudgetGoal)
+  /FinancialMcp.Infrastructure      -> EF Core, persistence, CSV statement import/parsing, external integrations
 
 /tests
   /FinancialMcp.Api.Tests
   /FinancialMcp.Application.Tests
 ```
 
-## Comandos Comuns
+## Common Commands
 
-### Rodar tudo (backend + Aspire dashboard)
+### Run everything (backend + Aspire dashboard)
 ```bash
 dotnet run --project src/FinancialMcp.AppHost
 ```
-O Aspire dashboard abre automaticamente (default: https://localhost:17090) mostrando logs, traces e métricas de todos os serviços, incluindo as chamadas de ferramentas MCP.
+The Aspire dashboard opens automatically (default: https://localhost:17090) showing logs, traces, and metrics for all services, including MCP tool calls.
 
-### Rodar testes
+### Run tests
 ```bash
 dotnet test
 ```
@@ -55,101 +55,101 @@ dotnet test
 dotnet build
 ```
 
-### Adicionar uma migration do EF Core (Postgres)
+### Add an EF Core migration (Postgres)
 ```bash
 dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure --startup-project src/FinancialMcp.Api
 ```
-A connection string do Postgres é injetada pelo Aspire (variável `ConnectionStrings__financialmcp-db`); não hardcodar host/porta/credenciais em `appsettings.json` — apenas defaults locais de desenvolvimento, se necessário.
+The Postgres connection string is injected by Aspire (`ConnectionStrings__financialmcp-db` variable); don't hardcode host/port/credentials in `appsettings.json` — only local development defaults, if needed.
 
-## Arquitetura
+## Architecture
 
 ### MCP
-- **Auth:** conexões MCP usam o mesmo esquema JWT bearer da REST API (provedor customizado, ver [Autenticação](#autenticação-jwt-customizado)); token passado via `accessTokenFactory` no client.
-- **Ferramentas expostas (tools)** — nomes sugeridos, ajustar conforme implementação real:
-  - `list_transactions` — lista transações de CC e/ou CD com filtros (tipo, status, categoria/subcategoria, conta, cartão, período, mês de referência).
-  - `get_transaction` — detalhe de uma transação específica.
-  - `create_transaction` — insere uma nova transação (CC ou CD), respeitando os campos obrigatórios de cada extrato.
-  - `update_transaction` — altera campos de uma transação existente (ex.: status, categoria, valor, data).
-  - `delete_transaction` — remove uma transação, deve ser soft delete. **Operação destrutiva**: exigir confirmação explícita do chamador antes de executar.
-  - `reconcile_transaction` — marca uma transação como `Conciliado` (CC) ou equivalente em CD.
-  - `list_categories` — lista categorias-mãe e subcategorias em uso (parse de `Categoria-mãe/Subcategoria`).
-  - `get_budget_status` — calcula `Gasto_Real`, `Saldo_Meta` e `% Utilizado` por categoria/mês, conforme `metas_orcamento.csv` (ver regras abaixo).
-  - `get_balance_projection` — gera a projeção de saldo consolidada (`projecao_saldo_contas_completo.csv`), aplicando o ciclo de fatura, parcelamento e lançamentos fixos.
-  - `import_statement` — importa um novo extrato CSV (CC ou CD) para a base.
-- Toda ferramenta que **grava/altera** dados (create/update/delete/import) deve validar os campos de acordo com o formato de origem (separador `;`, datas `dd/mm/aaaa`, decimal com ponto) antes de persistir.
+- **Auth:** MCP connections use the same JWT bearer scheme as the REST API (custom provider, see [Authentication](#authentication-custom-jwt)); token passed via `accessTokenFactory` on the client.
+- **Exposed tools** — suggested names, adjust to match the actual implementation:
+  - `list_transactions` — lists checking account and/or credit card transactions with filters (type, status, category/subcategory, account, card, period, reference month).
+  - `get_transaction` — detail of a specific transaction.
+  - `create_transaction` — inserts a new transaction (checking account or credit card), honoring the required fields for each statement type.
+  - `update_transaction` — changes fields of an existing transaction (e.g. status, category, amount, date).
+  - `delete_transaction` — removes a transaction; must be a soft delete. **Destructive operation**: require explicit confirmation from the caller before executing.
+  - `reconcile_transaction` — marks a transaction as `Conciliado` (checking account) or the equivalent for credit card.
+  - `list_categories` — lists parent categories and subcategories in use (parsed from `Categoria-mãe/Subcategoria`).
+  - `get_budget_status` — calculates `Gasto_Real`, `Saldo_Meta`, and `% Utilizado` per category/month, per `metas_orcamento.csv` (see rules below).
+  - `get_balance_projection` — generates the consolidated balance projection (`projecao_saldo_contas_completo.csv`), applying the billing cycle, installments, and fixed entries.
+  - `import_statement` — imports a new CSV statement (checking account or credit card) into the database.
+- Every tool that **writes/modifies** data (create/update/delete/import) must validate fields according to the source format (`;` separator, `dd/mm/yyyy` dates, dot-decimal) before persisting.
 
 ### Aspire
-- `FinancialMcp.AppHost/AppHost.cs` define os recursos: Postgres (`AddPostgres("financialmcp-postgres").AddDatabase("financialmcp-db")`), projeto API (`.WithReference(postgres)`), Redis se necessário para cache, app React se houver (como recurso `npm`).
-- `FinancialMcp.ServiceDefaults` configura OpenTelemetry, health checks (`/health`, `/alive`) e handlers de resiliência padrão — referenciar em todo projeto de serviço.
-- Service discovery: referenciar outros serviços pelo nome do recurso Aspire (ex.: `https+http://financialmcp-api`), nunca URLs hardcoded.
-- Em produção, o recurso Postgres do AppHost é substituído pela connection string real via configuração de ambiente/secret — o dashboard local nunca deve apontar para banco de produção.
+- `FinancialMcp.AppHost/AppHost.cs` defines the resources: Postgres (`AddPostgres("financialmcp-postgres").AddDatabase("financialmcp-db")`), the API project (`.WithReference(postgres)`), Redis if needed for caching, a React app if present (as an `npm` resource).
+- `FinancialMcp.ServiceDefaults` configures OpenTelemetry, health checks (`/health`, `/alive`), and default resilience handlers — reference it in every service project.
+- Service discovery: reference other services by their Aspire resource name (e.g. `https+http://financialmcp-api`), never hardcoded URLs.
+- In production, the AppHost's Postgres resource is replaced by the real connection string via environment configuration/secret — the local dashboard must never point at the production database.
 
-### Persistência (Postgres)
-- **Provider:** EF Core com `Npgsql.EntityFrameworkCore.PostgreSQL`, `DbContext` em `FinancialMcp.Infrastructure`.
-- **Schema/Migrations:** todas as migrations do EF Core ficam versionadas em `FinancialMcp.Infrastructure/Migrations`; nunca editar uma migration já aplicada em ambiente compartilhado — criar uma nova.
-- **Tipos:** mapear `Valor`/`Meta_Valor`/`Gasto_Real`/`Saldo_Meta` como `numeric` (não `double precision`); datas (`Data prevista`, `Data efetiva`, `Data Conciliado`, `Venc. Fatura`) como `date`/`timestamptz` conforme o caso, nunca `text`.
-- **Índices:** garantir índice em `(Mês_Ano, CategoriaMae)` e em `(Status, Tipo)` para acelerar as agregações de `get_budget_status`; índice em `Cartão`/`ParcelaTotal` para as queries de `get_balance_projection`.
-- **Soft delete:** `delete_transaction` seta uma coluna `DeletedAt`/`IsDeleted`; um global query filter no `DbContext` exclui registros deletados de todas as queries por padrão (queries administrativas explícitas podem ignorar o filtro via `IgnoreQueryFilters()`).
-- **Connection string:** sempre via Aspire service discovery/`ConnectionStrings`, nunca hardcoded (ver [Comandos Comuns](#comandos-comuns)).
+### Persistence (Postgres)
+- **Provider:** EF Core with `Npgsql.EntityFrameworkCore.PostgreSQL`, `DbContext` in `FinancialMcp.Infrastructure`.
+- **Schema/Migrations:** all EF Core migrations are versioned under `FinancialMcp.Infrastructure/Migrations`; never edit a migration already applied to a shared environment — create a new one.
+- **Types:** map `Valor`/`Meta_Valor`/`Gasto_Real`/`Saldo_Meta` as `numeric` (never `double precision`); dates (`Data prevista`, `Data efetiva`, `Data Conciliado`, `Venc. Fatura`) as `date`/`timestamptz` as appropriate, never `text`.
+- **Indexes:** ensure an index on `(Mês_Ano, CategoriaMae)` and on `(Status, Tipo)` to speed up `get_budget_status` aggregations; an index on `Cartão`/`ParcelaTotal` for `get_balance_projection` queries.
+- **Soft delete:** `delete_transaction` sets a `DeletedAt`/`IsDeleted` column; a global query filter on the `DbContext` excludes deleted records from all queries by default (explicit administrative queries can bypass the filter via `IgnoreQueryFilters()`).
+- **Connection string:** always via Aspire service discovery/`ConnectionStrings`, never hardcoded (see [Common Commands](#common-commands)).
 
-### Autenticação (JWT customizado)
-- **Emissão:** endpoint próprio (ex.: `POST /auth/token`) em `FinancialMcp.Api`, valida credenciais e emite um JWT assinado (HMAC ou RSA, chave via configuração/secret do Aspire) com claims mínimas (`sub`, `exp`, `iat`, e claims de escopo/role necessárias para diferenciar operações de leitura vs. escrita nas tools MCP).
-- **Validação:** middleware padrão do ASP.NET Core (`AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(...)`), configurado para validar issuer, audience, tempo de vida e assinatura; a mesma configuração de validação é reutilizada pelo host MCP (mesmo pipeline de auth da REST API, não um esquema paralelo).
-- **Refresh:** se necessário, refresh token opaco persistido no Postgres (tabela própria, nunca reaproveitando a tabela de usuários diretamente), com expiração curta para o access token e rotação do refresh token a cada uso.
-- **Segredos:** chave de assinatura e parâmetros sensíveis nunca ficam em `appsettings.json` versionado — usar `dotnet user-secrets` localmente e configuração de ambiente/secret manager em produção.
-- **Escopo de uso:** este é o único mecanismo de auth do projeto (sem ASP.NET Core Identity, sem Entra ID); qualquer necessidade futura de login federado deve ser tratada como uma extensão deste provedor, não uma substituição silenciosa.
+### Authentication (Custom JWT)
+- **Issuance:** a dedicated endpoint (e.g. `POST /auth/token`) in `FinancialMcp.Api` validates credentials and issues a signed JWT (HMAC or RSA, key via Aspire configuration/secret) with minimal claims (`sub`, `exp`, `iat`, and scope/role claims needed to distinguish read vs. write operations in the MCP tools).
+- **Validation:** standard ASP.NET Core middleware (`AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(...)`), configured to validate issuer, audience, lifetime, and signature; the same validation configuration is reused by the MCP host (same auth pipeline as the REST API, not a parallel scheme).
+- **Refresh:** if needed, an opaque refresh token persisted in Postgres (its own table, never reusing the users table directly), with a short access-token expiration and refresh-token rotation on each use.
+- **Secrets:** the signing key and other sensitive parameters never live in a versioned `appsettings.json` — use `dotnet user-secrets` locally and an environment/secret manager configuration in production.
+- **Usage scope:** this is the project's only auth mechanism (no ASP.NET Core Identity, no Entra ID); any future need for federated login should be handled as an extension of this provider, not a silent replacement.
 
-## Regras de Negócio do Domínio Financeiro
+## Financial Domain Business Rules
 
-Estas regras **governam** o comportamento das ferramentas MCP de consulta e cálculo (`get_budget_status`, `get_balance_projection`, `list_transactions`, etc.). Qualquer mudança de comportamento no código deve manter este documento atualizado.
+These rules **govern** the behavior of the query and calculation MCP tools (`get_budget_status`, `get_balance_projection`, `list_transactions`, etc.). Any behavior change in the code must keep this document up to date.
 
-### Categoria e subcategoria
-- A coluna `Categoria` dos extratos (CC e CD) é tratada como `Categoria-mãe/Subcategoria`, feito o split pelo caractere `/` quando presente.
-- Ao agregar por uma meta lançada apenas com a categoria-mãe (ex.: `Moradia`), somar **todas** as linhas cuja categoria-mãe seja `Moradia`, independente da subcategoria.
-- Gerar também um detalhamento por subcategoria (secundário, não cria meta própria).
-- Se o usuário cadastrar a meta já com subcategoria completa (ex.: `Moradia/Seguro`), o cálculo passa a ser exato para aquela subcategoria específica.
+### Category and subcategory
+- The `Categoria` column in the statements (CC and CD) is treated as `Categoria-mãe/Subcategoria`, split on the `/` character when present.
+- When aggregating for a goal registered with only the parent category (e.g. `Moradia`), sum **all** rows whose parent category is `Moradia`, regardless of subcategory.
+- Also generate a breakdown by subcategory (secondary, doesn't create its own goal).
+- If the user registers the goal with a full subcategory already (e.g. `Moradia/Seguro`), the calculation becomes exact for that specific subcategory.
 
-### Metas de orçamento (`get_budget_status`)
-1. **Filtro de status** (padrão, salvo indicação contrária): apenas `Status = Conciliado`. Ignorar `Agendado` (CC) e `Nconciliado` (CD).
-2. **Filtro de tipo**: apenas `Tipo = Despesa`. Não incluir `Receita` por padrão. Nunca incluir `Transferência` nem `Pagamento` (o "Pagamento de cartão" na conta corrente é excluído para não duplicar o gasto já contado via lançamentos do cartão).
-3. **Data de referência do mês (`Mês_Ano`)**:
-   - Conta Corrente (quando `Conciliado`): usar a coluna **"Data Conciliado"**.
-   - Cartão de Crédito: usar a coluna **"Venc. Fatura"** (não "Data efetiva") — reflete o mês em que o valor efetivamente impacta a conta de pagamento, respeitando a regra de virar para o próximo dia útil quando o vencimento cair em fim de semana.
-4. **Fórmulas**:
-   - `Gasto_Real` (padrão, salvo indicação contrária) = soma do valor absoluto das despesas conciliadas da mesma categoria-mãe (ou categoria completa, se a meta especificar subcategoria) no mesmo `Mês_Ano` (CC + CD combinados).
+### Budget goals (`get_budget_status`)
+1. **Status filter** (default, unless stated otherwise): only `Status = Conciliado`. Ignore `Agendado` (checking account) and `Nconciliado` (credit card).
+2. **Type filter**: only `Tipo = Despesa`. Don't include `Receita` by default. Never include `Transferência` or `Pagamento` (the "Pagamento de cartão" entry in the checking account is excluded so as not to double-count spending already counted via the card's entries).
+3. **Month reference date (`Mês_Ano`)**:
+   - Checking account (when `Conciliado`): use the **"Data Conciliado"** column.
+   - Credit card: use the **"Venc. Fatura"** column (not "Data efetiva") — reflects the month in which the amount actually impacts the payment account, honoring the rule of rolling to the next business day when the due date falls on a weekend.
+4. **Formulas**:
+   - `Gasto_Real` (default, unless stated otherwise) = sum of the absolute value of reconciled expenses in the same parent category (or full category, if the goal specifies a subcategory) in the same `Mês_Ano` (CC + CD combined).
    - `Saldo_Meta` = `Meta_Valor` − `Gasto_Real`.
    - `% Utilizado` = `Gasto_Real` / `Meta_Valor`.
-5. Categorias sem meta cadastrada não entram na planilha/consulta de metas (mas podem aparecer em um relatório à parte, se solicitado via `list_transactions`).
+5. Categories without a registered goal don't appear in the budget goal sheet/query (but can appear in a separate report if requested via `list_transactions`).
 
-### Cartão de crédito — ciclo de fatura, parcelamento e projeção (`get_balance_projection`)
-1. **Ciclo da fatura**: compras até o fechamento entram na fatura do mês corrente (vencimento no mês seguinte); compras após o fechamento entram só na fatura seguinte. Usar a coluna **"Venc. Fatura"** (quando existente) como a data que efetivamente impacta o saldo da conta de pagamento — nunca a "Data prevista" da compra.
-2. **Lançamentos parcelados**: identificados por `Repetição = "Parcelado"` e pelas colunas `Parcela Atual`/`Parcela Total` (ex.: `6/12`). Cada linha do extrato já representa uma parcela específica — não recalcular nem duplicar parcelas futuras. Ao projetar meses futuros ainda não presentes no extrato, gerar as parcelas restantes (`parcela_atual+1` até `parcela_total`) com vencimento em +1 mês por linha, mesmo valor, mesma descrição-base (sem sufixo `N/M`) e mesmo Cartão/Conta.
-3. **Lançamentos fixos mensais**: `Repetição = "Fixo Mês"` — repetir o mesmo valor todo mês na mesma data de vencimento até indicação de término.
-4. **Consolidação no saldo da conta**: o extrato de cartão **não** deve ser somado diretamente ao saldo da conta corrente. O valor total da fatura (soma dos lançamentos com "Venc. Fatura" no mesmo mês) deve aparecer como um único lançamento "Pagamento de cartão" na conta corrente, na data de vencimento, debitando da "Conta" vinculada ao cartão. Se o vencimento cair em sábado/domingo, considerar o próximo dia útil.
-5. **Status**: `Conciliado` = já processado/confirmado; `Nconciliado` = previsto, ainda sujeito a alteração de valor/data até o fechamento da fatura.
+### Credit card — billing cycle, installments, and projection (`get_balance_projection`)
+1. **Billing cycle**: purchases up to the closing date go into the current month's bill (due the following month); purchases after the closing date only go into the next bill. Use the **"Venc. Fatura"** column (when present) as the date that actually impacts the payment account's balance — never the purchase's "Data prevista".
+2. **Installment entries**: identified by `Repetição = "Parcelado"` and the `Parcela Atual`/`Parcela Total` columns (e.g. `6/12`). Each statement row already represents a specific installment — don't recalculate or duplicate future installments. When projecting future months not yet present in the statement, generate the remaining installments (`parcela_atual+1` through `parcela_total`) with the due date shifted by +1 month per row, the same amount, the same base description (without the `N/M` suffix), and the same Card/Account.
+3. **Fixed monthly entries**: `Repetição = "Fixo Mês"` — repeat the same amount every month on the same due date until an end is indicated.
+4. **Consolidation into the account balance**: the card statement must **not** be added directly to the checking account balance. The bill's total amount (sum of entries with "Venc. Fatura" in the same month) must appear as a single "Pagamento de cartão" entry in the checking account, on the due date, debited from the "Conta" linked to the card. If the due date falls on a Saturday/Sunday, use the next business day.
+5. **Status**: `Conciliado` = already processed/confirmed; `Nconciliado` = expected, still subject to amount/date changes until the bill closes.
 
-## Convenções de Código
+## Code Conventions
 
-- **C#:** Nullable reference types habilitado, namespaces file-scoped, primary constructors quando melhoram a clareza.
-- **Async:** todos os métodos I/O-bound são `async`/`await`; sufixo `Async`.
-- **DTOs:** nunca expor entidades de domínio diretamente via MCP/SignalR/REST — mapear para DTOs/records.
-- **Dinheiro:** usar `decimal` (nunca `double`/`float`) para `Valor`, `Meta_Valor`, `Gasto_Real`, `Saldo_Meta`.
-- **Datas:** tratar `Data prevista`, `Data efetiva`, `Data Conciliado` e `Venc. Fatura` como tipos de data explícitos (não string); centralizar a lógica de "próximo dia útil" em um helper único, reutilizado por `get_balance_projection` e `get_budget_status`.
-- **Categoria/Subcategoria:** centralizar o parsing `Categoria-mãe/Subcategoria` em um único helper/value object, reutilizado por todas as ferramentas MCP que agregam por categoria.
-- **Validação:** FluentValidation para request/command validation em `FinancialMcp.Application`, aplicada via pipeline behavior do MediatR (ver abaixo), incluindo validação de formato de extrato na importação (`import_statement`).
-- **Nomenclatura:** métodos em PascalCase no lado C#, camelCase no lado cliente (`ReceiveMessage` ↔ `receiveMessage`).
+- **C#:** Nullable reference types enabled, file-scoped namespaces, primary constructors when they improve clarity.
+- **Async:** all I/O-bound methods are `async`/`await`; `Async` suffix.
+- **DTOs:** never expose domain entities directly via MCP/SignalR/REST — map to DTOs/records.
+- **Money:** use `decimal` (never `double`/`float`) for `Valor`, `Meta_Valor`, `Gasto_Real`, `Saldo_Meta`.
+- **Dates:** treat `Data prevista`, `Data efetiva`, `Data Conciliado`, and `Venc. Fatura` as explicit date types (not string); centralize the "next business day" logic in a single helper, reused by `get_balance_projection` and `get_budget_status`.
+- **Category/Subcategory:** centralize the `Categoria-mãe/Subcategoria` parsing in a single helper/value object, reused by every MCP tool that aggregates by category.
+- **Validation:** FluentValidation for request/command validation in `FinancialMcp.Application`, applied via a MediatR pipeline behavior (see below), including statement format validation on import (`import_statement`).
+- **Naming:** methods in PascalCase on the C# side, camelCase on the client side (`ReceiveMessage` ↔ `receiveMessage`).
 
-### Padrão Mediator (MediatR)
+### Mediator Pattern (MediatR)
 
-Todas as ferramentas MCP e endpoints REST devem ser **thin**: apenas montam o `IRequest`/`IRequest<TResponse>` e chamam `IMediator.Send(...)` (ou `Publish` para notifications). Nenhuma regra de negócio deve viver na tool/handler MCP nem no controller — a lógica pertence aos handlers do MediatR em `FinancialMcp.Application`.
+All MCP tools and REST endpoints must be **thin**: they only build the `IRequest`/`IRequest<TResponse>` and call `IMediator.Send(...)` (or `Publish` for notifications). No business rule should live in the MCP tool/handler or in the controller — the logic belongs to the MediatR handlers in `FinancialMcp.Application`.
 
-- **CQRS explícito:** separar sempre em **Commands** (escrita: `create_transaction`, `update_transaction`, `delete_transaction`, `reconcile_transaction`, `import_statement`) e **Queries** (leitura: `list_transactions`, `get_transaction`, `list_categories`, `get_budget_status`, `get_balance_projection`).
-- **Organização por feature:** agrupar cada request + handler + validator (+ DTO de resposta) na mesma pasta de feature, não em pastas genéricas `Commands/`, `Queries/`, `Handlers/` soltas:
+- **Explicit CQRS:** always separate into **Commands** (writes: `create_transaction`, `update_transaction`, `delete_transaction`, `reconcile_transaction`, `import_statement`) and **Queries** (reads: `list_transactions`, `get_transaction`, `list_categories`, `get_budget_status`, `get_balance_projection`).
+- **Feature-based organization:** group each request + handler + validator (+ response DTO) in the same feature folder, not in loose generic `Commands/`, `Queries/`, `Handlers/` folders:
   ```
   FinancialMcp.Application/
     Transactions/
       CreateTransaction/
-        CreateTransactionCommand.cs        (record, implementa IRequest<TransactionDto>)
+        CreateTransactionCommand.cs        (record, implements IRequest<TransactionDto>)
         CreateTransactionCommandHandler.cs  (IRequestHandler<CreateTransactionCommand, TransactionDto>)
         CreateTransactionCommandValidator.cs (AbstractValidator<CreateTransactionCommand>)
       DeleteTransaction/
@@ -163,48 +163,48 @@ Todas as ferramentas MCP e endpoints REST devem ser **thin**: apenas montam o `I
         GetBudgetStatusQuery.cs
         GetBudgetStatusQueryHandler.cs
   ```
-- **Nomenclatura:** `<Ação><Entidade>Command`/`Query` para o request, `<Nome>Handler` para o handler, `<Nome>Validator` para o FluentValidation validator. Requests são `record` imutáveis; nunca reaproveitar entidades de domínio como request.
-- **Um handler por request:** cada `IRequestHandler<TRequest, TResponse>` deve ser a única unidade que orquestra repositórios/services para aquele caso de uso. Regras de cálculo puras (parcelamento, ciclo de fatura, próximo dia útil, agregação de categoria) ficam em services de domínio/aplicação injetados no handler — não escritas inline no handler — para permitir teste unitário isolado (ver [Orientações de Teste](#orientações-de-teste)).
-- **Pipeline behaviors** (registrados uma única vez em `FinancialMcp.Application`, via `AddMediatR` + `AddTransient(typeof(IPipelineBehavior<,>), ...)`), na ordem:
-  1. `LoggingBehavior<TRequest,TResponse>` — loga request/response (sem dados sensíveis) e integra com o tracing do Aspire/OpenTelemetry.
-  2. `ValidationBehavior<TRequest,TResponse>` — executa todos os `IValidator<TRequest>` (FluentValidation) antes do handler; lança `ValidationException` customizada em caso de falha, mapeada para erro MCP/HTTP apropriado.
-  3. `TransactionBehavior<TRequest,TResponse>` (apenas para Commands que gravam via EF Core) — abre transação de banco, executa o handler, faz commit/rollback.
-- **Notifications (`INotification`)** para efeitos colaterais desacoplados do fluxo principal, sem acoplar o handler de escrita a lógica de outros módulos:
-  - Ex.: `TransactionReconciledNotification`, publicada por `ReconcileTransactionCommandHandler`, consumida por um `INotificationHandler` que recalcula `get_budget_status` em cache ou notifica clientes via SignalR.
-  - Nunca usar `Publish` para lógica que precisa de retorno síncrono ou que é parte obrigatória da regra de negócio — isso continua sendo responsabilidade do `Command`/`Handler` principal.
-- **Operações destrutivas:** `DeleteTransactionCommand` deve carregar um campo explícito de confirmação (ex.: `Confirm: bool`) validado pelo `ValidationBehavior`; o handler rejeita a execução se `Confirm != true`, reforçando a regra de "nunca executar sem confirmação explícita" (ver [O que o Claude Deve Evitar](#o-que-o-claude-deve-evitar)).
-- **Registro:** `services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(FinancialMcp.Application.AssemblyMarker).Assembly))` centralizado em `FinancialMcp.Application`, referenciado a partir de `FinancialMcp.Api` — nunca registrar assemblies MediatR diretamente na camada de API.
+- **Naming:** `<Action><Entity>Command`/`Query` for the request, `<Name>Handler` for the handler, `<Name>Validator` for the FluentValidation validator. Requests are immutable `record`s; never reuse domain entities as a request.
+- **One handler per request:** each `IRequestHandler<TRequest, TResponse>` must be the single unit orchestrating repositories/services for that use case. Pure calculation rules (installments, billing cycle, next business day, category aggregation) live in domain/application services injected into the handler — not written inline in the handler — to allow isolated unit testing (see [Testing Guidelines](#testing-guidelines)).
+- **Pipeline behaviors** (registered once in `FinancialMcp.Application`, via `AddMediatR` + `AddTransient(typeof(IPipelineBehavior<,>), ...)`), in order:
+  1. `LoggingBehavior<TRequest,TResponse>` — logs request/response (no sensitive data) and integrates with Aspire/OpenTelemetry tracing.
+  2. `ValidationBehavior<TRequest,TResponse>` — runs every `IValidator<TRequest>` (FluentValidation) before the handler; throws a custom `ValidationException` on failure, mapped to the appropriate MCP/HTTP error.
+  3. `TransactionBehavior<TRequest,TResponse>` (only for Commands that write via EF Core) — opens a database transaction, runs the handler, commits/rolls back.
+- **Notifications (`INotification`)** for side effects decoupled from the main flow, without coupling the write handler to other modules' logic:
+  - E.g.: `TransactionReconciledNotification`, published by `ReconcileTransactionCommandHandler`, consumed by an `INotificationHandler` that recalculates cached `get_budget_status` or notifies clients via SignalR.
+  - Never use `Publish` for logic that needs a synchronous return value or that is a mandatory part of the business rule — that remains the responsibility of the main `Command`/`Handler`.
+- **Destructive operations:** `DeleteTransactionCommand` must carry an explicit confirmation field (e.g. `Confirm: bool`) validated by `ValidationBehavior`; the handler rejects execution if `Confirm != true`, reinforcing the rule of "never executing without explicit confirmation" (see [What Claude Should Avoid](#what-claude-should-avoid)).
+- **Registration:** `services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(FinancialMcp.Application.AssemblyMarker).Assembly))` centralized in `FinancialMcp.Application`, referenced from `FinancialMcp.Api` — never register MediatR assemblies directly in the API layer.
 
-## Orientações de Teste
+## Testing Guidelines
 
-- Testar unitariamente as regras de negócio isoladas dos handlers/tools MCP (extraí-las para services; tools/handlers devem ficar finos).
-- Cobrir especificamente com testes:
-  - Cálculo de parcelas restantes ao projetar meses futuros.
-  - Ciclo de fechamento/vencimento de fatura, incluindo virada para o próximo dia útil em fins de semana.
-  - Agregação de `Gasto_Real` por categoria-mãe vs. subcategoria completa.
-  - Exclusão de `Transferência`, `Pagamento` e `Receita` do cálculo de metas.
-  - Consolidação do "Pagamento de cartão" único na conta corrente, evitando duplicidade de gasto.
-- Usar `TestServer` + client MCP real (ou equivalente) para testes de integração das ferramentas expostas.
-- Frontend (se houver): React Testing Library para componentes, mockando a conexão MCP/SignalR em vez de abrir sockets reais.
+- Unit test business rules in isolation from the handlers/MCP tools (extract them into services; tools/handlers should stay thin).
+- Specifically cover with tests:
+  - Calculation of remaining installments when projecting future months.
+  - Billing cycle closing/due date, including rolling to the next business day on weekends.
+  - `Gasto_Real` aggregation by parent category vs. full subcategory.
+  - Exclusion of `Transferência`, `Pagamento`, and `Receita` from the budget goal calculation.
+  - Consolidation of the single "Pagamento de cartão" entry in the checking account, avoiding duplicate spending.
+- Use `TestServer` + a real MCP client (or equivalent) for integration tests of the exposed tools.
+- Frontend (if any): React Testing Library for components, mocking the MCP/SignalR connection instead of opening real sockets.
 
-## Vinculando Outros Artefatos e Docs
+## Linking Other Artifacts and Docs
 
-Este `CLAUDE.md` é o ponto de entrada, mas não precisa concentrar tudo — é permitido e incentivado linkar outros artefatos (docs de arquitetura, ADRs, diagramas, specs de API, outros `CLAUDE.md` de subpastas) sem que isso quebre o parsing ou a navegação:
+This `CLAUDE.md` is the entry point, but it doesn't need to hold everything — linking other artifacts (architecture docs, ADRs, diagrams, API specs, other subfolder `CLAUDE.md` files) is allowed and encouraged, without breaking parsing or navigation:
 
-- **Links relativos ao repositório:** sempre usar caminho relativo a partir da raiz ou da pasta atual (ex.: `docs/adr/0001-postgres.md`, `../FinancialMcp.Infrastructure/README.md`), nunca caminho absoluto de máquina local.
-- **Import do Claude Code (`@caminho`):** para conteúdo que deve ser carregado automaticamente como contexto (não só como link clicável), usar a sintaxe `@docs/arquivo.md` em vez de reescrever o conteúdo aqui. Evitar imports circulares (A importa B que importa A) e evitar importar arquivos muito grandes sem necessidade — preferir um resumo aqui + link/import para o detalhe.
-- **`CLAUDE.md` aninhados:** subpastas (ex.: `src/FinancialMcp.Infrastructure/CLAUDE.md`) podem existir com regras específicas daquele módulo; este arquivo raiz não precisa duplicá-las, apenas apontar para elas quando relevante.
-- **Âncoras estáveis:** ao linkar para uma seção específica deste arquivo (âncora tipo `#autenticação-jwt-customizado`), preferir sempre o título em português tal como está escrito, para não quebrar o link em caso de reordenação de seções.
-- **Artefatos externos ao repo** (Notion, Confluence, dashboards do Aspire, Grafana etc.): linkar normalmente em markdown padrão; não é necessário validar disponibilidade desses links durante o build/CI.
-- Um link quebrado ou artefato ainda não criado **não** deve bloquear a leitura/uso deste `CLAUDE.md` pelo Claude — tratar como referência opcional, não como dependência obrigatória.
+- **Repo-relative links:** always use a path relative to the root or the current folder (e.g. `docs/adr/0001-postgres.md`, `../FinancialMcp.Infrastructure/README.md`), never a local machine's absolute path.
+- **Claude Code import (`@path`):** for content that should be automatically loaded as context (not just as a clickable link), use the `@docs/file.md` syntax instead of rewriting the content here. Avoid circular imports (A imports B which imports A) and avoid importing very large files unnecessarily — prefer a summary here + a link/import to the detail.
+- **Nested `CLAUDE.md` files:** subfolders (e.g. `src/FinancialMcp.Infrastructure/CLAUDE.md`) may exist with rules specific to that module; this root file doesn't need to duplicate them, just point to them when relevant.
+- **Stable anchors:** when linking to a specific section of this file (anchor like `#authentication-custom-jwt`), always prefer the title exactly as written, so the link doesn't break if sections get reordered.
+- **Artifacts external to the repo** (Notion, Confluence, Aspire dashboards, Grafana, etc.): link normally with standard markdown; there's no need to validate the availability of these links during build/CI.
+- A broken link or an artifact not yet created must **not** block Claude from reading/using this `CLAUDE.md` — treat it as an optional reference, not a mandatory dependency.
 
-## O que o Claude Deve Evitar
+## What Claude Should Avoid
 
-- Não hardcodar portas/URLs — deixar o Aspire service discovery e `launchSettings.json`/`appsettings.json` cuidarem disso.
-- Não contornar a camada de DTO para enviar entidades EF Core pela rede.
-- Não implementar cálculos de meta/projeção de saldo divergentes das regras descritas em [Regras de Negócio](#regras-de-negócio-do-domínio-financeiro) sem antes atualizar esta seção.
-- Não executar `delete_transaction` (ou qualquer operação destrutiva) sem confirmação explícita do chamador.
+- Don't hardcode ports/URLs — let Aspire service discovery and `launchSettings.json`/`appsettings.json` handle that.
+- Don't bypass the DTO layer to send EF Core entities over the network.
+- Don't implement budget goal/balance projection calculations that diverge from the rules described in [Business Rules](#financial-domain-business-rules) without first updating that section.
+- Don't run `delete_transaction` (or any destructive operation) without explicit confirmation from the caller.
 
-## Perguntas Abertas / TODO
-- [x] Store de persistência: **PostgreSQL** (EF Core + Npgsql, recurso Aspire).
-- [x] Provedor de auth: **JWT customizado** (emissão/validação próprias, sem Identity/Entra ID).
+## Open Questions / TODO
+- [x] Persistence store: **PostgreSQL** (EF Core + Npgsql, Aspire resource).
+- [x] Auth provider: **Custom JWT** (its own issuance/validation, no Identity/Entra ID).
