@@ -12,15 +12,14 @@ using System.Text;
 namespace FinancialMcp.Infrastructure;
 
 /// <summary>
-/// Registro de EF Core/Postgres, auth JWT customizado e serviços de infraestrutura.
-/// Chamado a partir de FinancialMcp.Api (que também chama builder.AddNpgsqlDbContext
-/// via integração Aspire para pegar a connection string por service discovery).
+/// Registration of infrastructure services not tied to persistence or auth
+/// (currently just the statement CSV parser). Called from FinancialMcp.Api.
 /// </summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Parser de extrato CSV usado por ImportStatementCommandHandler.
+        // Statement CSV parser used by ImportStatementCommandHandler.
         services.AddScoped<IStatementCsvParser, StatementCsvParser>();
 
         return services;

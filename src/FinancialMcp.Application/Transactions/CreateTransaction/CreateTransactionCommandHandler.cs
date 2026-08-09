@@ -15,23 +15,23 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
     {
-        var transaction = new Transacao
+        var transaction = new Transaction
         {
-            Origem = Enum.Parse<OrigemTransacao>(request.Source),
-            Tipo = Enum.Parse<TipoTransacao>(request.Type),
-            Status = Enum.Parse<StatusTransacao>(request.Status),
-            Descricao = request.Description,
-            Valor = request.Amount,
-            CategoriaBruta = request.RawCategory,
-            DataPrevista = request.ExpectedDate,
-            DataEfetiva = request.ActualDate,
-            DataConciliado = request.ReconciledDate,
-            VencimentoFatura = request.InvoiceDueDate,
-            Repeticao = request.Recurrence is null ? TipoRepeticao.Nenhuma : Enum.Parse<TipoRepeticao>(request.Recurrence),
-            ParcelaAtual = request.CurrentInstallment,
-            ParcelaTotal = request.TotalInstallments,
-            ContaId = request.AccountId,
-            CartaoId = request.CardId
+            Source = Enum.Parse<TransactionSource>(request.Source),
+            Type = Enum.Parse<TransactionType>(request.Type),
+            Status = Enum.Parse<TransactionStatus>(request.Status),
+            Description = request.Description,
+            Amount = request.Amount,
+            RawCategory = request.RawCategory,
+            ExpectedDate = request.ExpectedDate,
+            ActualDate = request.ActualDate,
+            ReconciledDate = request.ReconciledDate,
+            InvoiceDueDate = request.InvoiceDueDate,
+            Recurrence = request.Recurrence is null ? RecurrenceType.None : Enum.Parse<RecurrenceType>(request.Recurrence),
+            CurrentInstallment = request.CurrentInstallment,
+            TotalInstallments = request.TotalInstallments,
+            AccountId = request.AccountId,
+            CardId = request.CardId
         };
 
         db.Transactions.Add(transaction);
@@ -40,20 +40,20 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
 
         return new TransactionDto(
             transaction.Id,
-            transaction.Origem.ToString(),
-            transaction.Tipo.ToString(),
+            transaction.Source.ToString(),
+            transaction.Type.ToString(),
             transaction.Status.ToString(),
-            transaction.Descricao,
-            transaction.Valor,
-            transaction.CategoriaBruta,
-            transaction.DataPrevista,
-            transaction.DataEfetiva,
-            transaction.DataConciliado,
-            transaction.VencimentoFatura,
-            transaction.Repeticao.ToString(),
-            transaction.ParcelaAtual,
-            transaction.ParcelaTotal,
-            transaction.ContaId,
-            transaction.CartaoId);
+            transaction.Description,
+            transaction.Amount,
+            transaction.RawCategory,
+            transaction.ExpectedDate,
+            transaction.ActualDate,
+            transaction.ReconciledDate,
+            transaction.InvoiceDueDate,
+            transaction.Recurrence.ToString(),
+            transaction.CurrentInstallment,
+            transaction.TotalInstallments,
+            transaction.AccountId,
+            transaction.CardId);
     }
 }

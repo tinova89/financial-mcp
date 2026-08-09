@@ -9,5 +9,5 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 /// </summary>
 public interface IStatementCsvParser
 {
-    IReadOnlyList<Transacao> Parse(string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings);
+    IReadOnlyList<Transaction> Parse(string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings);
 }

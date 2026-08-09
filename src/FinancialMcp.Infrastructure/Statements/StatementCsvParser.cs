@@ -8,15 +8,32 @@ using FinancialMcp.Domain.Enums;
 namespace FinancialMcp.Infrastructure.Statements;
 
 /// <summary>
-/// Parser concreto do formato de extrato: separador ";", datas "dd/mm/aaaa",
-/// decimal com ponto (ver CLAUDE.md > MCP e Convenções de Código). Linhas
-/// inválidas geram um aviso e são puladas — nunca lançam exceção que aborta o
-/// lote inteiro, para permitir importação parcial com feedback ao chamador.
+/// Concrete parser for the statement format: ";" separator, "dd/mm/yyyy" dates,
+/// dot-decimal (see CLAUDE.md > MCP and Code Conventions). Invalid lines generate
+/// a warning and are skipped — they never throw an exception that aborts the
+/// whole batch, to allow partial import with feedback to the caller.
 /// </summary>
 public sealed class StatementCsvParser : IStatementCsvParser
 {
-    public IReadOnlyList<Transacao> Parse(
-        string csvContent, string origem, Guid? contaId, Guid? cartaoId, out IReadOnlyList<string> avisos)
+    // Real-world statement files still carry Portuguese "Tipo"/"Status" column text —
+    // these map that raw text to the (now English) Domain enum members.
+    private static readonly Dictionary<string, TransactionType> TypeByCsvValue = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Despesa"] = TransactionType.Expense,
+        ["Receita"] = TransactionType.Income,
+        ["Transferencia"] = TransactionType.Transfer,
+        ["Pagamento"] = TransactionType.Payment
+    };
+
+    private static readonly Dictionary<string, TransactionStatus> StatusByCsvValue = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Conciliado"] = TransactionStatus.Reconciled,
+        ["Agendado"] = TransactionStatus.Scheduled,
+        ["Nconciliado"] = TransactionStatus.Unreconciled
+    };
+
+    public IReadOnlyList<Transaction> Parse(
+        string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -26,8 +43,8 @@ public sealed class StatementCsvParser : IStatementCsvParser
             BadDataFound = null
         };
 
-        var transacoes = new List<Transacao>();
-        var listaAvisos = new List<string>();
+        var transactions = new List<Transaction>();
+        var warningList = new List<string>();
 
         using var reader = new StringReader(csvContent);
         using var csv = new CsvReader(reader, config);
@@ -35,97 +52,109 @@ public sealed class StatementCsvParser : IStatementCsvParser
         csv.Read();
         csv.ReadHeader();
 
-        var linha = 1;
+        var line = 1;
 
         while (csv.Read())
         {
-            linha++;
+            line++;
 
             try
             {
-                var transacao = MapearLinha(csv, origem, contaId, cartaoId);
-                transacoes.Add(transacao);
+                var transaction = MapRow(csv, source, accountId, cardId);
+                transactions.Add(transaction);
             }
             catch (Exception ex)
             {
-                listaAvisos.Add($"Linha {linha}: {ex.Message}");
+                warningList.Add($"Linha {line}: {ex.Message}");
             }
         }
 
-        avisos = listaAvisos;
-        return transacoes;
+        warnings = warningList;
+        return transactions;
     }
 
-    private static Transacao MapearLinha(CsvReader csv, string origem, Guid? contaId, Guid? cartaoId)
+    private static Transaction MapRow(CsvReader csv, string source, Guid? accountId, Guid? cardId)
     {
-        var origemEnum = Enum.Parse<OrigemTransacao>(origem);
+        // `source` indicates which statement type is being imported — it's an Application-controlled
+        // parameter (already English by the time it gets here), not raw CSV text, so it's parsed directly.
+        var sourceEnum = Enum.Parse<TransactionSource>(source);
 
-        var valorBruto = csv.GetField("Valor") ?? throw new FormatException("Campo 'Valor' ausente.");
-        var valor = decimal.Parse(valorBruto, NumberStyles.Number, CultureInfo.InvariantCulture);
+        var rawAmount = csv.GetField("Valor") ?? throw new FormatException("Campo 'Valor' ausente.");
+        var amount = decimal.Parse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture);
 
-        var tipoBruto = csv.GetField("Tipo") ?? throw new FormatException("Campo 'Tipo' ausente.");
-        var statusBruto = csv.GetField("Status") ?? throw new FormatException("Campo 'Status' ausente.");
-        var categoria = csv.GetField("Categoria") ?? "Sem categoria";
-        var descricao = csv.GetField("Descrição") ?? csv.GetField("Descricao") ?? string.Empty;
+        var rawType = csv.GetField("Tipo") ?? throw new FormatException("Campo 'Tipo' ausente.");
+        var rawStatus = csv.GetField("Status") ?? throw new FormatException("Campo 'Status' ausente.");
+        var category = csv.GetField("Categoria") ?? "Sem categoria";
+        var description = csv.GetField("Descrição") ?? csv.GetField("Descricao") ?? string.Empty;
 
-        var dataPrevista = ParseDataDdMmAaaa(csv.GetField("Data prevista"))
+        var expectedDate = ParseDdMmYyyyDate(csv.GetField("Data prevista"))
             ?? throw new FormatException("Campo 'Data prevista' inválido ou ausente.");
 
-        var transacao = new Transacao
+        var transaction = new Transaction
         {
-            Origem = origemEnum,
-            Tipo = Enum.Parse<TipoTransacao>(tipoBruto, ignoreCase: true),
-            Status = Enum.Parse<StatusTransacao>(statusBruto, ignoreCase: true),
-            Descricao = descricao,
-            Valor = valor,
-            CategoriaBruta = categoria,
-            DataPrevista = dataPrevista,
-            DataEfetiva = ParseDataDdMmAaaa(csv.GetField("Data efetiva")),
-            ContaId = origemEnum == OrigemTransacao.ContaCorrente ? contaId : null,
-            CartaoId = origemEnum == OrigemTransacao.CartaoCredito ? cartaoId : null
+            Source = sourceEnum,
+            Type = ResolveType(rawType),
+            Status = ResolveStatus(rawStatus),
+            Description = description,
+            Amount = amount,
+            RawCategory = category,
+            ExpectedDate = expectedDate,
+            ActualDate = ParseDdMmYyyyDate(csv.GetField("Data efetiva")),
+            AccountId = sourceEnum == TransactionSource.CheckingAccount ? accountId : null,
+            CardId = sourceEnum == TransactionSource.CreditCard ? cardId : null
         };
 
-        if (origemEnum == OrigemTransacao.ContaCorrente)
+        if (sourceEnum == TransactionSource.CheckingAccount)
         {
-            transacao.DataConciliado = ParseDataDdMmAaaa(csv.GetField("Data Conciliado"));
+            transaction.ReconciledDate = ParseDdMmYyyyDate(csv.GetField("Data Conciliado"));
         }
         else
         {
-            transacao.VencimentoFatura = ParseDataDdMmAaaa(csv.GetField("Venc. Fatura"));
+            transaction.InvoiceDueDate = ParseDdMmYyyyDate(csv.GetField("Venc. Fatura"));
 
-            var repeticaoBruta = csv.GetField("Repetição") ?? csv.GetField("Repeticao");
-            transacao.Repeticao = repeticaoBruta switch
+            var rawRecurrence = csv.GetField("Repetição") ?? csv.GetField("Repeticao");
+            transaction.Recurrence = rawRecurrence switch
             {
-                "Parcelado" => TipoRepeticao.Parcelado,
-                "Fixo Mês" or "Fixo Mes" => TipoRepeticao.FixoMes,
-                _ => TipoRepeticao.Nenhuma
+                "Parcelado" => RecurrenceType.Installment,
+                "Fixo Mês" or "Fixo Mes" => RecurrenceType.FixedMonthly,
+                _ => RecurrenceType.None
             };
 
-            if (transacao.Repeticao == TipoRepeticao.Parcelado)
+            if (transaction.Recurrence == RecurrenceType.Installment)
             {
-                var parcela = csv.GetField("Parcela Atual");
-                var totalParcelas = csv.GetField("Parcela Total");
+                var installment = csv.GetField("Parcela Atual");
+                var totalInstallments = csv.GetField("Parcela Total");
 
-                if (parcela is not null && totalParcelas is not null)
+                if (installment is not null && totalInstallments is not null)
                 {
-                    transacao.ParcelaAtual = int.Parse(parcela, CultureInfo.InvariantCulture);
-                    transacao.ParcelaTotal = int.Parse(totalParcelas, CultureInfo.InvariantCulture);
+                    transaction.CurrentInstallment = int.Parse(installment, CultureInfo.InvariantCulture);
+                    transaction.TotalInstallments = int.Parse(totalInstallments, CultureInfo.InvariantCulture);
                 }
             }
         }
 
-        return transacao;
+        return transaction;
     }
 
-    private static DateOnly? ParseDataDdMmAaaa(string? valor)
+    private static TransactionType ResolveType(string rawValue) =>
+        TypeByCsvValue.TryGetValue(rawValue, out var type)
+            ? type
+            : throw new FormatException($"Valor de 'Tipo' desconhecido: '{rawValue}'.");
+
+    private static TransactionStatus ResolveStatus(string rawValue) =>
+        StatusByCsvValue.TryGetValue(rawValue, out var status)
+            ? status
+            : throw new FormatException($"Valor de 'Status' desconhecido: '{rawValue}'.");
+
+    private static DateOnly? ParseDdMmYyyyDate(string? value)
     {
-        if (string.IsNullOrWhiteSpace(valor))
+        if (string.IsNullOrWhiteSpace(value))
         {
             return null;
         }
 
-        return DateOnly.TryParseExact(valor, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var data)
-            ? data
+        return DateOnly.TryParseExact(value, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date
             : null;
     }
 }

@@ -4,7 +4,7 @@ namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 
 public sealed class UpdateTransactionCommandValidator : AbstractValidator<UpdateTransactionCommand>
 {
-    private static readonly string[] ValidStatuses = ["Conciliado", "Agendado", "Nconciliado"];
+    private static readonly string[] ValidStatuses = ["Reconciled", "Scheduled", "Unreconciled"];
 
     public UpdateTransactionCommandValidator()
     {

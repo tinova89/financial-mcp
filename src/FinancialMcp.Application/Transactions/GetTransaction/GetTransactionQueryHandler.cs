@@ -17,12 +17,12 @@ public sealed class GetTransactionQueryHandler(IApplicationDbContext db)
 
         if (t is null)
         {
-            throw new NotFoundException(nameof(Transacao), request.TransactionId);
+            throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
         return new TransactionDto(
-            t.Id, t.Origem.ToString(), t.Tipo.ToString(), t.Status.ToString(), t.Descricao, t.Valor,
-            t.CategoriaBruta, t.DataPrevista, t.DataEfetiva, t.DataConciliado, t.VencimentoFatura,
-            t.Repeticao.ToString(), t.ParcelaAtual, t.ParcelaTotal, t.ContaId, t.CartaoId);
+            t.Id, t.Source.ToString(), t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
+            t.RawCategory, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
+            t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId, t.CardId);
     }
 }

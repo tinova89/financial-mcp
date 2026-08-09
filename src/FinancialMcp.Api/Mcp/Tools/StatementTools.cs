@@ -9,10 +9,10 @@ namespace FinancialMcp.Api.Mcp.Tools;
 public sealed class StatementTools(IMediator mediator)
 {
     [McpServerTool(Name = "import_statement"), Description(
-        "Importa um novo extrato CSV (Conta Corrente ou Cartão de Crédito) para a base. " +
-        "Formato esperado: separador ';', datas 'dd/mm/aaaa', decimal com ponto.")]
+        "Imports a new CSV statement (checking account or credit card) into the database. " +
+        "Expected format: ';' separator, 'dd/mm/yyyy' dates, dot-decimal.")]
     public Task<ImportStatementResultDto> ImportStatementAsync(
-        string origem, string csvContent, Guid? contaId = null, Guid? cartaoId = null,
+        string source, string csvContent, Guid? accountId = null, Guid? cardId = null,
         CancellationToken cancellationToken = default) =>
-        mediator.Send(new ImportStatementCommand(origem, contaId, cartaoId, csvContent), cancellationToken);
+        mediator.Send(new ImportStatementCommand(source, accountId, cardId, csvContent), cancellationToken);
 }

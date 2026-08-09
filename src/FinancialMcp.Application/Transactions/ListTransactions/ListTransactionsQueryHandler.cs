@@ -9,7 +9,7 @@ namespace FinancialMcp.Application.Transactions.ListTransactions;
 
 /// <summary>
 /// Single handler for ListTransactionsQuery. Pure category calculation rule
-/// (parsing "Categoria-mãe/Subcategoria") delegated to the domain's Categoria value object.
+/// (parsing "Categoria-mãe/Subcategoria") delegated to the domain's Category value object.
 /// </summary>
 public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
     : IRequestHandler<ListTransactionsQuery, PagedResult<TransactionDto>>
@@ -20,80 +20,80 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
         if (request.Source is not null)
         {
-            query = query.Where(t => t.Origem == Enum.Parse<OrigemTransacao>(request.Source));
+            query = query.Where(t => t.Source == Enum.Parse<TransactionSource>(request.Source));
         }
 
         if (request.Type is not null)
         {
-            query = query.Where(t => t.Tipo == Enum.Parse<TipoTransacao>(request.Type));
+            query = query.Where(t => t.Type == Enum.Parse<TransactionType>(request.Type));
         }
 
         if (request.Status is not null)
         {
-            query = query.Where(t => t.Status == Enum.Parse<StatusTransacao>(request.Status));
+            query = query.Where(t => t.Status == Enum.Parse<TransactionStatus>(request.Status));
         }
 
         if (request.AccountId is not null)
         {
-            query = query.Where(t => t.ContaId == request.AccountId);
+            query = query.Where(t => t.AccountId == request.AccountId);
         }
 
         if (request.CardId is not null)
         {
-            query = query.Where(t => t.CartaoId == request.CardId);
+            query = query.Where(t => t.CardId == request.CardId);
         }
 
         if (request.PeriodStart is not null)
         {
-            query = query.Where(t => t.DataPrevista >= request.PeriodStart);
+            query = query.Where(t => t.ExpectedDate >= request.PeriodStart);
         }
 
         if (request.PeriodEnd is not null)
         {
-            query = query.Where(t => t.DataPrevista <= request.PeriodEnd);
+            query = query.Where(t => t.ExpectedDate <= request.PeriodEnd);
         }
 
         if (request.ParentCategory is not null)
         {
             // EF.Functions.Like avoids bringing everything into memory before filtering by parent category.
-            query = query.Where(t => EF.Functions.Like(t.CategoriaBruta, $"{request.ParentCategory}%"));
+            query = query.Where(t => EF.Functions.Like(t.RawCategory, $"{request.ParentCategory}%"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var transactions = await query
-            .OrderByDescending(t => t.DataPrevista)
+            .OrderByDescending(t => t.ExpectedDate)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        // Subcategory/Year/Month filters depend on the Categoria value object and the
-        // reference MesAno calculated in memory (Data Conciliado vs. Venc. Fatura).
+        // Subcategory/Year/Month filters depend on the Category value object and the
+        // reference MonthYear calculated in memory (Data Conciliado vs. Venc. Fatura).
         var filteredItems = transactions
-            .Where(t => request.Subcategory is null || t.Categoria.Subcategoria == request.Subcategory)
-            .Where(t => request.Year is null || t.ObterMesAnoReferencia()?.Ano == request.Year)
-            .Where(t => request.Month is null || t.ObterMesAnoReferencia()?.Mes == request.Month)
+            .Where(t => request.Subcategory is null || t.Category.Subcategory == request.Subcategory)
+            .Where(t => request.Year is null || t.GetReferenceMonthYear()?.Year == request.Year)
+            .Where(t => request.Month is null || t.GetReferenceMonthYear()?.Month == request.Month)
             .Select(Map)
             .ToList();
 
         return new PagedResult<TransactionDto>(filteredItems, request.Page, request.PageSize, totalCount);
     }
 
-    private static TransactionDto Map(Transacao t) => new(
+    private static TransactionDto Map(Transaction t) => new(
         t.Id,
-        t.Origem.ToString(),
-        t.Tipo.ToString(),
+        t.Source.ToString(),
+        t.Type.ToString(),
         t.Status.ToString(),
-        t.Descricao,
-        t.Valor,
-        t.CategoriaBruta,
-        t.DataPrevista,
-        t.DataEfetiva,
-        t.DataConciliado,
-        t.VencimentoFatura,
-        t.Repeticao.ToString(),
-        t.ParcelaAtual,
-        t.ParcelaTotal,
-        t.ContaId,
-        t.CartaoId);
+        t.Description,
+        t.Amount,
+        t.RawCategory,
+        t.ExpectedDate,
+        t.ActualDate,
+        t.ReconciledDate,
+        t.InvoiceDueDate,
+        t.Recurrence.ToString(),
+        t.CurrentInstallment,
+        t.TotalInstallments,
+        t.AccountId,
+        t.CardId);
 }

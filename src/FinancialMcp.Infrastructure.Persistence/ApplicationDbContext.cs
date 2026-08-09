@@ -5,28 +5,28 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Infrastructure.Persistence;
 
 /// <summary>
-/// DbContext único do projeto. Aplica o global query filter de soft delete em
-/// todas as entidades derivadas de BaseEntity (ver CLAUDE.md > Persistência > Soft delete).
+/// The project's single DbContext. Applies the global soft-delete query filter to
+/// all entities derived from BaseEntity (see CLAUDE.md > Persistence > Soft delete).
 /// </summary>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : DbContext(options), IApplicationDbContext
 {
-    public DbSet<Transacao> Transactions => Set<Transacao>();
-    public DbSet<Conta> Accounts => Set<Conta>();
-    public DbSet<Cartao> Cards => Set<Cartao>();
-    public DbSet<MetaOrcamento> BudgetGoals => Set<MetaOrcamento>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Card> Cards => Set<Card>();
+    public DbSet<BudgetGoal> BudgetGoals => Set<BudgetGoal>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Global query filter de soft delete — queries administrativas explícitas
-        // podem ignorar via IgnoreQueryFilters().
-        modelBuilder.Entity<Transacao>().HasQueryFilter(t => !t.IsDeleted);
-        modelBuilder.Entity<Conta>().HasQueryFilter(c => !c.IsDeleted);
-        modelBuilder.Entity<Cartao>().HasQueryFilter(c => !c.IsDeleted);
-        modelBuilder.Entity<MetaOrcamento>().HasQueryFilter(m => !m.IsDeleted);
+        // Global soft-delete query filter — explicit administrative queries can
+        // bypass it via IgnoreQueryFilters().
+        modelBuilder.Entity<Transaction>().HasQueryFilter(t => !t.IsDeleted);
+        modelBuilder.Entity<Account>().HasQueryFilter(c => !c.IsDeleted);
+        modelBuilder.Entity<Card>().HasQueryFilter(c => !c.IsDeleted);
+        modelBuilder.Entity<BudgetGoal>().HasQueryFilter(m => !m.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }

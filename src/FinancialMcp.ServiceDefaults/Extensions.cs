@@ -11,9 +11,9 @@ using OpenTelemetry.Trace;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Defaults compartilhados do Aspire: OpenTelemetry, health checks ("/health", "/alive")
-/// e handlers de resiliência padrão. Referenciado por todo projeto de serviço
-/// (FinancialMcp.Api, FinancialMcp.AppHost). Ver CLAUDE.md > Arquitetura > Aspire.
+/// Shared Aspire defaults: OpenTelemetry, health checks ("/health", "/alive")
+/// and default resilience handlers. Referenced by every service project
+/// (FinancialMcp.Api, FinancialMcp.AppHost). See CLAUDE.md > Architecture > Aspire.
 /// </summary>
 public static class Extensions
 {
@@ -28,7 +28,7 @@ public static class Extensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Resiliência padrão (retry, circuit breaker, timeout) em todo HttpClient.
+            // Default resilience (retry, circuit breaker, timeout) on every HttpClient.
             http.AddStandardResilienceHandler();
             http.AddServiceDiscovery();
         });
@@ -55,7 +55,7 @@ public static class Extensions
             .WithTracing(tracing =>
             {
                 tracing.AddAspNetCoreInstrumentation()
-                    // Inclui as chamadas de ferramentas MCP no tracing do Aspire.
+                    // Includes MCP tool calls in Aspire tracing.
                     .AddSource("FinancialMcp.Mcp")
                     .AddSource("FinancialMcp.Application.MediatR")
                     .AddHttpClientInstrumentation();
@@ -93,10 +93,10 @@ public static class Extensions
     {
         if (app.Environment.IsDevelopment())
         {
-            // Health checks completos (inclui dependências como Postgres) apenas em dev.
+            // Full health checks (including dependencies like Postgres) only in dev.
             app.MapHealthChecks("/health");
 
-            // "Alive" verifica apenas se o processo está de pé (usado por orquestradores).
+            // "Alive" only checks that the process is up (used by orchestrators).
             app.MapHealthChecks("/alive", new HealthCheckOptions
             {
                 Predicate = r => r.Tags.Contains("live")

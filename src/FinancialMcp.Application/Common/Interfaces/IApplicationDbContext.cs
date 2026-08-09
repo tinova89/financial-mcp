@@ -9,10 +9,10 @@ namespace FinancialMcp.Application.Common.Interfaces;
 /// </summary>
 public interface IApplicationDbContext
 {
-    DbSet<Transacao> Transactions { get; }
-    DbSet<Conta> Accounts { get; }
-    DbSet<Cartao> Cards { get; }
-    DbSet<MetaOrcamento> BudgetGoals { get; }
+    DbSet<Transaction> Transactions { get; }
+    DbSet<Account> Accounts { get; }
+    DbSet<Card> Cards { get; }
+    DbSet<BudgetGoal> BudgetGoals { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

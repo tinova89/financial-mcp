@@ -4,20 +4,16 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinancialMcp.Infrastructure.Persistence.Configurations;
 
-public sealed class CartaoConfiguration : IEntityTypeConfiguration<Cartao>
+public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
 {
-    public void Configure(EntityTypeBuilder<Cartao> builder)
+    public void Configure(EntityTypeBuilder<Account> builder)
     {
-        builder.ToTable("cartoes");
+        builder.ToTable("accounts");
         builder.HasKey(c => c.Id);
-        builder.Property(c => c.Nome).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
+        builder.Property(c => c.Bank).HasMaxLength(200).IsRequired();
         builder.Property(c => c.CreatedAt).HasColumnType("timestamptz");
         builder.Property(c => c.UpdatedAt).HasColumnType("timestamptz");
         builder.Property(c => c.DeletedAt).HasColumnType("timestamptz");
-
-        builder.HasOne(c => c.Conta)
-            .WithMany(a => a.Cartoes)
-            .HasForeignKey(c => c.ContaId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

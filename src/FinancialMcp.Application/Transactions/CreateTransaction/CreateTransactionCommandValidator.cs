@@ -9,8 +9,8 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// </summary>
 public sealed class CreateTransactionCommandValidator : AbstractValidator<CreateTransactionCommand>
 {
-    private static readonly string[] ValidSources = ["ContaCorrente", "CartaoCredito"];
-    private static readonly string[] ValidTypes = ["Despesa", "Receita", "Transferencia", "Pagamento"];
+    private static readonly string[] ValidSources = ["CheckingAccount", "CreditCard"];
+    private static readonly string[] ValidTypes = ["Expense", "Income", "Transfer", "Payment"];
 
     public CreateTransactionCommandValidator()
     {
@@ -29,7 +29,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
         // Credit card specific rules.
-        When(x => x.Source == "CartaoCredito", () =>
+        When(x => x.Source == "CreditCard", () =>
         {
             RuleFor(x => x.CardId).NotNull()
                 .WithMessage("CartaoId é obrigatório para transações de Cartão de Crédito.");
@@ -37,7 +37,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
             RuleFor(x => x.InvoiceDueDate).NotNull()
                 .WithMessage("VencimentoFatura é obrigatório para transações de Cartão de Crédito.");
 
-            When(x => x.Recurrence == "Parcelado", () =>
+            When(x => x.Recurrence == "Installment", () =>
             {
                 RuleFor(x => x.CurrentInstallment).NotNull().GreaterThan(0);
                 RuleFor(x => x.TotalInstallments).NotNull()
@@ -47,7 +47,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
         });
 
         // Checking account specific rules.
-        When(x => x.Source == "ContaCorrente", () =>
+        When(x => x.Source == "CheckingAccount", () =>
         {
             RuleFor(x => x.AccountId).NotNull()
                 .WithMessage("ContaId é obrigatório para transações de Conta Corrente.");

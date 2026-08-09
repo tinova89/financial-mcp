@@ -11,45 +11,45 @@ using ModelContextProtocol.Server;
 namespace FinancialMcp.Api.Mcp.Tools;
 
 /// <summary>
-/// Ferramentas MCP de transações (CC + CD). Cada tool é "thin": apenas monta o
-/// request do MediatR e chama IMediator.Send — toda a regra de negócio vive nos
-/// handlers em FinancialMcp.Application (ver CLAUDE.md > Padrão Mediator).
+/// MCP tools for transactions (checking account + credit card). Each tool is "thin": it
+/// only builds the MediatR request and calls IMediator.Send — all business logic lives in
+/// the handlers in FinancialMcp.Application (see CLAUDE.md > Mediator Pattern).
 /// </summary>
 [McpServerToolType]
 public sealed class TransactionTools(IMediator mediator)
 {
     [McpServerTool(Name = "list_transactions"), Description(
-        "Lista transações de Conta Corrente e/ou Cartão de Crédito com filtros " +
-        "(tipo, status, categoria/subcategoria, conta, cartão, período, mês de referência).")]
+        "Lists checking account and/or credit card transactions with filters " +
+        "(type, status, category/subcategory, account, card, period, reference month).")]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
-        string? origem = null, string? tipo = null, string? status = null,
-        string? categoriaMae = null, string? subcategoria = null,
-        Guid? contaId = null, Guid? cartaoId = null,
-        DateOnly? periodoInicio = null, DateOnly? periodoFim = null,
-        int? ano = null, int? mes = null, int page = 1, int pageSize = 50,
+        string? source = null, string? type = null, string? status = null,
+        string? parentCategory = null, string? subcategory = null,
+        Guid? accountId = null, Guid? cardId = null,
+        DateOnly? periodStart = null, DateOnly? periodEnd = null,
+        int? year = null, int? month = null, int page = 1, int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         mediator.Send(new ListTransactionsQuery(
-            origem, tipo, status, categoriaMae, subcategoria, contaId, cartaoId,
-            periodoInicio, periodoFim, ano, mes, page, pageSize), cancellationToken);
+            source, type, status, parentCategory, subcategory, accountId, cardId,
+            periodStart, periodEnd, year, month, page, pageSize), cancellationToken);
 
-    [McpServerTool(Name = "get_transaction"), Description("Detalhe de uma transação específica.")]
+    [McpServerTool(Name = "get_transaction"), Description("Detail of a specific transaction.")]
     public Task<TransactionDto> GetTransactionAsync(Guid transactionId, CancellationToken cancellationToken = default) =>
         mediator.Send(new GetTransactionQuery(transactionId), cancellationToken);
 
     [McpServerTool(Name = "create_transaction"), Description(
-        "Insere uma nova transação (Conta Corrente ou Cartão de Crédito), respeitando " +
-        "os campos obrigatórios de cada extrato.")]
+        "Inserts a new transaction (checking account or credit card), honoring " +
+        "the required fields for each statement type.")]
     public Task<TransactionDto> CreateTransactionAsync(CreateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
 
     [McpServerTool(Name = "update_transaction"), Description(
-        "Altera campos de uma transação existente (status, categoria, valor, data).")]
+        "Changes fields of an existing transaction (status, category, amount, date).")]
     public Task<TransactionDto> UpdateTransactionAsync(UpdateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
 
     [McpServerTool(Name = "delete_transaction"), Description(
-        "Remove (soft delete) uma transação. OPERAÇÃO DESTRUTIVA: exige confirm = true. " +
-        "Sempre confirme explicitamente com o usuário antes de chamar esta ferramenta com confirm = true.")]
+        "Removes (soft delete) a transaction. DESTRUCTIVE OPERATION: requires confirm = true. " +
+        "Always confirm explicitly with the user before calling this tool with confirm = true.")]
     public async Task<string> DeleteTransactionAsync(Guid transactionId, bool confirm, CancellationToken cancellationToken = default)
     {
         await mediator.Send(new DeleteTransactionCommand(transactionId, confirm), cancellationToken);
@@ -57,11 +57,11 @@ public sealed class TransactionTools(IMediator mediator)
     }
 
     [McpServerTool(Name = "reconcile_transaction"), Description(
-        "Marca uma transação como Conciliado (Conta Corrente) ou equivalente em Cartão de Crédito.")]
+        "Marks a transaction as Reconciled (checking account) or the equivalent for credit card.")]
     public async Task<string> ReconcileTransactionAsync(
-        Guid transactionId, DateOnly? dataConciliado = null, CancellationToken cancellationToken = default)
+        Guid transactionId, DateOnly? reconciledDate = null, CancellationToken cancellationToken = default)
     {
-        await mediator.Send(new ReconcileTransactionCommand(transactionId, dataConciliado), cancellationToken);
+        await mediator.Send(new ReconcileTransactionCommand(transactionId, reconciledDate), cancellationToken);
         return "Transação conciliada.";
     }
 }

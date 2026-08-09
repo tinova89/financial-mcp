@@ -21,11 +21,11 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
 {
     public async Task<IReadOnlyList<BudgetStatusDto>> Handle(GetBudgetStatusQuery request, CancellationToken cancellationToken)
     {
-        var targetMonthYear = new MesAno(request.Year, request.Month);
+        var targetMonthYear = new MonthYear(request.Year, request.Month);
 
         var budgetGoals = await db.BudgetGoals
             .AsNoTracking()
-            .Where(m => m.Ano == request.Year && m.Mes == request.Month)
+            .Where(m => m.Year == request.Year && m.Month == request.Month)
             .ToListAsync(cancellationToken);
 
         if (budgetGoals.Count == 0)
@@ -33,42 +33,42 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
             return [];
         }
 
-        // Brings in a reasonable universe of candidates (Despesa + Conciliado) and filters the
+        // Brings in a reasonable universe of candidates (Expense + Reconciled) and filters the
         // reference Mês_Ano in memory, since it depends on which date column to use
-        // based on the Origem (a rule that isn't directly translatable to plain SQL
-        // without duplicating logic — kept centralized in Transacao.ObterMesAnoReferencia()).
+        // based on the Source (a rule that isn't directly translatable to plain SQL
+        // without duplicating logic — kept centralized in Transaction.GetReferenceMonthYear()).
         var candidates = await db.Transactions
             .AsNoTracking()
-            .Where(t => t.Status == StatusTransacao.Conciliado && t.Tipo == TipoTransacao.Despesa)
+            .Where(t => t.Status == TransactionStatus.Reconciled && t.Type == TransactionType.Expense)
             .ToListAsync(cancellationToken);
 
         var monthExpenses = candidates
-            .Where(t => t.ObterMesAnoReferencia() == targetMonthYear)
+            .Where(t => t.GetReferenceMonthYear() == targetMonthYear)
             .ToList();
 
         var result = new List<BudgetStatusDto>(budgetGoals.Count);
 
         foreach (var goal in budgetGoals)
         {
-            var goalCategory = goal.Categoria;
+            var goalCategory = goal.Category;
 
             var categoryExpenses = monthExpenses
-                .Where(t => t.Categoria.CasaComMeta(goalCategory))
+                .Where(t => t.Category.MatchesGoal(goalCategory))
                 .ToList();
 
-            var actualSpent = categoryExpenses.Sum(t => Math.Abs(t.Valor));
-            var remainingBudget = goal.MetaValor - actualSpent;
-            decimal? utilizationPercentage = goal.MetaValor == 0m ? null : actualSpent / goal.MetaValor;
+            var actualSpent = categoryExpenses.Sum(t => Math.Abs(t.Amount));
+            var remainingBudget = goal.BudgetAmount - actualSpent;
+            decimal? utilizationPercentage = goal.BudgetAmount == 0m ? null : actualSpent / goal.BudgetAmount;
 
             var breakdown = categoryExpenses
-                .GroupBy(t => t.Categoria.Subcategoria)
-                .Select(g => new SubcategoryBreakdownDto(g.Key, g.Sum(t => Math.Abs(t.Valor))))
+                .GroupBy(t => t.Category.Subcategory)
+                .Select(g => new SubcategoryBreakdownDto(g.Key, g.Sum(t => Math.Abs(t.Amount))))
                 .OrderByDescending(d => d.ActualSpent)
                 .ToList();
 
             result.Add(new BudgetStatusDto(
-                goal.CategoriaBruta,
-                goal.MetaValor,
+                goal.RawCategory,
+                goal.BudgetAmount,
                 actualSpent,
                 remainingBudget,
                 utilizationPercentage,

@@ -20,7 +20,7 @@ public sealed class DeleteTransactionCommandHandler(IApplicationDbContext db)
 
         if (transaction is null)
         {
-            throw new NotFoundException(nameof(Transacao), request.TransactionId);
+            throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
         transaction.MarkAsDeleted();

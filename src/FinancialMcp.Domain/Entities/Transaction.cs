@@ -1,0 +1,66 @@
+using FinancialMcp.Domain.Common;
+using FinancialMcp.Domain.Enums;
+using FinancialMcp.Domain.ValueObjects;
+
+namespace FinancialMcp.Domain.Entities;
+
+/// <summary>
+/// A line from a Checking Account or Credit Card statement. See CLAUDE.md >
+/// Financial Domain Business Rules for the aggregation/projection rules that
+/// consume this entity.
+/// </summary>
+public class Transaction : BaseEntity
+{
+    public TransactionSource Source { get; set; }
+    public TransactionType Type { get; set; }
+    public TransactionStatus Status { get; set; }
+
+    public string Description { get; set; } = default!;
+
+    /// <summary>Always decimal — never double/float (see CLAUDE.md > Code Conventions > Money).</summary>
+    public decimal Amount { get; set; }
+
+    public string RawCategory { get; set; } = default!; // "Categoria-mãe/Subcategoria" as it came from the statement
+    public Category Category => Category.Parse(RawCategory);
+
+    // Explicit dates (never string) — see CLAUDE.md > Code Conventions > Dates.
+    public DateOnly ExpectedDate { get; set; }
+    public DateOnly? ActualDate { get; set; }
+    public DateOnly? ReconciledDate { get; set; }   // checking account only, when Status = Reconciled
+    public DateOnly? InvoiceDueDate { get; set; }   // credit card only — date that impacts the balance
+
+    // Installments / recurrence (credit card only).
+    public RecurrenceType Recurrence { get; set; } = RecurrenceType.None;
+    public int? CurrentInstallment { get; set; }
+    public int? TotalInstallments { get; set; }
+
+    public Guid? AccountId { get; set; }
+    public Account? Account { get; set; }
+
+    public Guid? CardId { get; set; }
+    public Card? Card { get; set; }
+
+    /// <summary>
+    /// Reference Mês_Ano: "Data Conciliado" for reconciled checking account, "Venc. Fatura" for credit card
+    /// (see CLAUDE.md > Business Rules > Budget goals, item 3).
+    /// </summary>
+    public MonthYear? GetReferenceMonthYear()
+    {
+        if (Source == TransactionSource.CheckingAccount && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
+        {
+            return MonthYear.FromDate(ReconciledDate.Value);
+        }
+
+        if (Source == TransactionSource.CreditCard && InvoiceDueDate is not null)
+        {
+            return MonthYear.FromDate(InvoiceDueDate.Value);
+        }
+
+        return null;
+    }
+
+    /// <summary>Counts toward the Gasto_Real calculation for goals (see CLAUDE.md > Budget goals, items 1-2).</summary>
+    public bool IsEligibleForActualSpend =>
+        Status == TransactionStatus.Reconciled
+        && Type == TransactionType.Expense;
+}

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinancialMcp.Infrastructure.Persistence.Configurations;
 
-/// <summary>Tabela própria para refresh tokens — nunca reaproveitar a tabela de usuários (ver CLAUDE.md > Autenticação).</summary>
+/// <summary>Dedicated table for refresh tokens — never reuse the users table (see CLAUDE.md > Authentication).</summary>
 public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
@@ -18,6 +18,6 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.Property(r => r.CreatedAt).HasColumnType("timestamptz");
 
         builder.HasIndex(r => r.TokenHash).IsUnique();
-        builder.HasIndex(r => r.UsuarioId);
+        builder.HasIndex(r => r.UserId);
     }
 }

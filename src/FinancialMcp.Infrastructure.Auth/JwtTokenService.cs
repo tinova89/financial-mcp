@@ -9,9 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 namespace FinancialMcp.Infrastructure.Auth;
 
 /// <summary>
-/// Emissão e validação próprias de JWT (sem Identity/Entra ID). Claims mínimas:
-/// sub, exp, iat, e claims de escopo/role para diferenciar leitura vs. escrita nas
-/// tools MCP (ver CLAUDE.md > Autenticação JWT customizado).
+/// Own issuance and validation of JWT (without Identity/Entra ID). Minimal claims:
+/// sub, exp, iat, and scope/role claims to differentiate read vs. write in the MCP
+/// tools (see CLAUDE.md > Authentication Custom JWT).
 /// </summary>
 public sealed class JwtTokenService(IOptions<JwtSettings> options) : IJwtTokenService
 {

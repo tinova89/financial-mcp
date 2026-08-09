@@ -9,9 +9,9 @@ namespace FinancialMcp.Api.Mcp.Tools;
 public sealed class BalanceProjectionTools(IMediator mediator)
 {
     [McpServerTool(Name = "get_balance_projection"), Description(
-        "Gera a projeção de saldo consolidada, aplicando o ciclo de fatura, parcelamento " +
-        "e lançamentos fixos do(s) cartão(ões) vinculado(s) à conta informada.")]
+        "Generates the consolidated balance projection, applying the billing cycle, installments " +
+        "and fixed entries of the card(s) linked to the given account.")]
     public Task<IReadOnlyList<MonthlyProjectionDto>> GetBalanceProjectionAsync(
-        Guid contaId, int mesesAFrente = 6, CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetBalanceProjectionQuery(contaId, mesesAFrente), cancellationToken);
+        Guid accountId, int monthsAhead = 6, CancellationToken cancellationToken = default) =>
+        mediator.Send(new GetBalanceProjectionQuery(accountId, monthsAhead), cancellationToken);
 }

@@ -10,15 +10,14 @@ using System.Text;
 namespace FinancialMcp.Infrastructure;
 
 /// <summary>
-/// Registro de EF Core/Postgres, auth JWT customizado e serviços de infraestrutura.
-/// Chamado a partir de FinancialMcp.Api (que também chama builder.AddNpgsqlDbContext
-/// via integração Aspire para pegar a connection string por service discovery).
+/// Registration of the custom JWT auth services (token issuance/validation,
+/// current-user accessor) and the ASP.NET Core auth middleware. Called from FinancialMcp.Api.
 /// </summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureAuth(this IServiceCollection services, IConfiguration configuration)
     {
-        // Auth JWT customizado.
+        // Custom JWT auth.
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddHttpContextAccessor();
@@ -44,9 +43,9 @@ public static class DependencyInjection
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
 
-                // Mesmo pipeline de auth é reutilizado pelo host MCP (ver CLAUDE.md > MCP > Auth):
-                // o token é lido do header Authorization padrão tanto pelas rotas REST quanto pelo
-                // endpoint MCP, que roda sobre o mesmo host ASP.NET Core.
+                // The same auth pipeline is reused by the MCP host (see CLAUDE.md > MCP > Auth):
+                // the token is read from the standard Authorization header both by REST routes and
+                // by the MCP endpoint, which runs on the same ASP.NET Core host.
             });
 
         services.AddAuthorization();

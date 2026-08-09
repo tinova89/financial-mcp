@@ -1,7 +1,7 @@
 namespace FinancialMcp.Domain.Common;
 
 /// <summary>
-/// Base para entidades com identidade e soft delete (ver CLAUDE.md > Persistência > Soft delete).
+/// Base for entities with identity and soft delete (see CLAUDE.md > Persistence > Soft delete).
 /// </summary>
 public abstract class BaseEntity
 {
@@ -12,8 +12,8 @@ public abstract class BaseEntity
     public DateTimeOffset? UpdatedAt { get; set; }
 
     /// <summary>
-    /// Soft delete: nunca remover fisicamente uma transação. O DbContext aplica
-    /// um global query filter que exclui registros com IsDeleted = true por padrão.
+    /// Soft delete: never physically remove a transaction. The DbContext applies
+    /// a global query filter that excludes records with IsDeleted = true by default.
     /// </summary>
     public bool IsDeleted { get; private set; }
 

@@ -9,7 +9,7 @@ namespace FinancialMcp.Api.Mcp.Tools;
 public sealed class CategoryTools(IMediator mediator)
 {
     [McpServerTool(Name = "list_categories"), Description(
-        "Lista categorias-mãe e subcategorias em uso (parse de Categoria-mãe/Subcategoria).")]
+        "Lists parent categories and subcategories in use (parsed from Categoria-mãe/Subcategoria).")]
     public Task<IReadOnlyList<CategoryDto>> ListCategoriesAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListCategoriesQuery(), cancellationToken);
 }

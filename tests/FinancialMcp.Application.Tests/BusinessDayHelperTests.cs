@@ -5,20 +5,20 @@ using Xunit;
 namespace FinancialMcp.Application.Tests;
 
 /// <summary>
-/// Cobre CLAUDE.md > Orientações de Teste > "Ciclo de fechamento/vencimento de
-/// fatura, incluindo virada para o próximo dia útil em fins de semana".
+/// Covers CLAUDE.md > Testing Guidelines > "Billing cycle closing/due date,
+/// including rolling to the next business day on weekends".
 /// </summary>
 public class BusinessDayHelperTests
 {
     [Theory]
-    [InlineData(2026, 8, 8, 2026, 8, 10)]  // sábado -> segunda
-    [InlineData(2026, 8, 9, 2026, 8, 10)]  // domingo -> segunda
-    [InlineData(2026, 8, 10, 2026, 8, 10)] // segunda permanece
-    public void ProximoDiaUtil_deve_virar_fim_de_semana_para_segunda(
-        int ano, int mes, int dia, int anoEsperado, int mesEsperado, int diaEsperado)
+    [InlineData(2026, 8, 8, 2026, 8, 10)]  // Saturday -> Monday
+    [InlineData(2026, 8, 9, 2026, 8, 10)]  // Sunday -> Monday
+    [InlineData(2026, 8, 10, 2026, 8, 10)] // Monday stays
+    public void NextBusinessDay_should_roll_weekend_to_monday(
+        int year, int month, int day, int expectedYear, int expectedMonth, int expectedDay)
     {
-        var resultado = BusinessDayHelper.NextBusinessDay(new DateOnly(ano, mes, dia));
+        var result = BusinessDayHelper.NextBusinessDay(new DateOnly(year, month, day));
 
-        resultado.Should().Be(new DateOnly(anoEsperado, mesEsperado, diaEsperado));
+        result.Should().Be(new DateOnly(expectedYear, expectedMonth, expectedDay));
     }
 }

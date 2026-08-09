@@ -5,9 +5,9 @@ using ValidationException = FinancialMcp.Application.Common.Exceptions.Validatio
 namespace FinancialMcp.Api.Common;
 
 /// <summary>
-/// Mapeia exceções lançadas pelos handlers do MediatR (ValidationBehavior,
-/// NotFoundException, ConfirmationRequiredException) para respostas HTTP/MCP
-/// apropriadas (ver CLAUDE.md > Padrão Mediator > ValidationBehavior).
+/// Maps exceptions thrown by MediatR handlers (ValidationBehavior,
+/// NotFoundException, ConfirmationRequiredException) to the appropriate
+/// HTTP/MCP responses (see CLAUDE.md > Mediator Pattern > ValidationBehavior).
 /// </summary>
 public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {

@@ -8,9 +8,9 @@ using FinancialMcp.Infrastructure.Interfaces;
 namespace FinancialMcp.Api.Auth;
 
 /// <summary>
-/// Endpoint próprio de emissão de token (POST /auth/token), conforme CLAUDE.md >
-/// Autenticação (JWT customizado) > Emissão. Validação de credenciais aqui é um
-/// placeholder simples — substituir por verificação real de usuário/senha.
+/// Dedicated token issuance endpoint (POST /auth/token), per CLAUDE.md >
+/// Authentication (Custom JWT) > Issuance. Credential validation here is a
+/// simple placeholder — replace with real username/password verification.
 /// </summary>
 public static class AuthEndpoints
 {
@@ -24,7 +24,7 @@ public static class AuthEndpoints
             ApplicationDbContext db,
             CancellationToken cancellationToken) =>
         {
-            // TODO: validar credenciais reais (usuário/senha) antes de emitir o token.
+            // TODO: validate real credentials (username/password) before issuing the token.
             if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
             {
                 return Results.Unauthorized();
@@ -38,7 +38,7 @@ public static class AuthEndpoints
 
             db.RefreshTokens.Add(new RefreshToken
             {
-                UsuarioId = userId,
+                UserId = userId,
                 TokenHash = Hash(refreshToken),
                 ExpiresAt = expiresAt
             });
@@ -66,7 +66,7 @@ public static class AuthEndpoints
                 return Results.Unauthorized();
             }
 
-            // Rotação: revoga o token usado e emite um novo (ver CLAUDE.md > Autenticação > Refresh).
+            // Rotation: revokes the used token and issues a new one (see CLAUDE.md > Authentication > Refresh).
             existing.RevokedAt = DateTimeOffset.UtcNow;
 
             var (newRefreshToken, expiresAt) = tokenService.GenerateRefreshToken();
@@ -74,13 +74,13 @@ public static class AuthEndpoints
 
             db.RefreshTokens.Add(new RefreshToken
             {
-                UsuarioId = existing.UsuarioId,
+                UserId = existing.UserId,
                 TokenHash = Hash(newRefreshToken),
                 ExpiresAt = expiresAt
             });
 
             var accessToken = tokenService.GenerateAccessToken(
-                existing.UsuarioId, ["transactions:read", "transactions:write", "budget:read"]);
+                existing.UserId, ["transactions:read", "transactions:write", "budget:read"]);
 
             await db.SaveChangesAsync(cancellationToken);
 

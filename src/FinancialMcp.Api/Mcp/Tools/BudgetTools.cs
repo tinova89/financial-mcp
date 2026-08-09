@@ -9,10 +9,10 @@ namespace FinancialMcp.Api.Mcp.Tools;
 public sealed class BudgetTools(IMediator mediator)
 {
     [McpServerTool(Name = "get_budget_status"), Description(
-        "Calcula Gasto_Real, Saldo_Meta e % Utilizado por categoria/mês, conforme metas " +
-        "de orçamento cadastradas. Aplica as regras de CLAUDE.md > Regras de Negócio > " +
-        "Metas de orçamento (apenas Status=Conciliado e Tipo=Despesa).")]
+        "Calculates Gasto_Real, Saldo_Meta and % Utilizado by category/month, per the " +
+        "registered budget goals. Applies the rules from CLAUDE.md > Business Rules > " +
+        "Budget goals (only Status=Conciliado and Tipo=Despesa).")]
     public Task<IReadOnlyList<BudgetStatusDto>> GetBudgetStatusAsync(
-        int ano, int mes, CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetBudgetStatusQuery(ano, mes), cancellationToken);
+        int year, int month, CancellationToken cancellationToken = default) =>
+        mediator.Send(new GetBudgetStatusQuery(year, month), cancellationToken);
 }

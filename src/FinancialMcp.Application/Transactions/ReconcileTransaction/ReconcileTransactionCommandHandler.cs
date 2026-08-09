@@ -17,14 +17,14 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
 
         if (t is null)
         {
-            throw new NotFoundException(nameof(Transacao), request.TransactionId);
+            throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
-        t.Status = StatusTransacao.Conciliado;
+        t.Status = TransactionStatus.Reconciled;
 
-        if (t.Origem == OrigemTransacao.ContaCorrente)
+        if (t.Source == TransactionSource.CheckingAccount)
         {
-            t.DataConciliado = request.ReconciledDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            t.ReconciledDate = request.ReconciledDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         }
 
         // Published after the in-memory change; the actual commit happens in TransactionBehavior.

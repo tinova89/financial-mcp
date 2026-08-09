@@ -9,26 +9,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Machine-specific overrides (optional). Loaded after appsettings.json and appsettings.{Environment}.json.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
-// Defaults compartilhados do Aspire: OpenTelemetry, health checks, resiliência
-// (ver CLAUDE.md > Arquitetura > Aspire).
+// Shared Aspire defaults: OpenTelemetry, health checks, resilience
+// (see CLAUDE.md > Architecture > Aspire).
 builder.AddServiceDefaults();
 
-// Postgres via integração Aspire: a connection string do recurso "financialmcp-db"
-// é injetada automaticamente por service discovery (nunca hardcoded aqui).
+// Postgres via Aspire integration: the connection string for the "financialmcp-db"
+// resource is injected automatically by service discovery (never hardcoded here).
 builder.AddNpgsqlDbContext<ApplicationDbContext>("financialmcp-db");
 
 
-// Camadas da aplicação (ver CLAUDE.md > Padrão Mediator > Registro e > Autenticação).
+// Application layers (see CLAUDE.md > Mediator Pattern > Registration and > Authentication).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 //builder.Services.AddInfrastructureAuth(builder.Configuration);
-builder.Services.AddInfrastructureNpgsqPersistence("financialmcp-db", builder.Configuration);
+builder.Services.AddInfrastructurePersistence("financialmcp-db", builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-// Host MCP sobre o mesmo processo/porta da API, autenticado via JWT bearer
-// (ver CLAUDE.md > MCP > Auth) e com as tools registradas por reflexão.
+// MCP host over the same process/port as the API, authenticated via JWT bearer
+// (see CLAUDE.md > MCP > Auth) and with tools registered by reflection.
 builder.Services
     .AddMcpServer()
     .WithHttpTransport()
@@ -38,7 +38,7 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.MapDefaultEndpoints(); // "/health", "/alive" — ver ServiceDefaults.
+app.MapDefaultEndpoints(); // "/health", "/alive" — see ServiceDefaults.
 
 if (app.Environment.IsDevelopment())
 {
@@ -50,14 +50,14 @@ if (app.Environment.IsDevelopment())
 
 //app.MapAuthEndpoints();
 
-// Endpoint MCP autenticado por JWT bearer — mesmo esquema/pipeline da REST API.
+// MCP endpoint authenticated via JWT bearer — same scheme/pipeline as the REST API.
 app.MapMcp("/mcp")
     //.RequireAuthorization()
     ;
 
 await app.RunAsync();
 
-// Exposto para o Aspire AppHost referenciar via AddProject<Projects.FinancialMcp_Api>.
+// Exposed so the Aspire AppHost can reference it via AddProject<Projects.FinancialMcp_Api>.
 namespace FinancialMcp.Api
 {
     public partial class Program;

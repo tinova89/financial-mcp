@@ -1,9 +1,9 @@
 namespace FinancialMcp.Infrastructure.Auth;
 
 /// <summary>
-/// Configuração do provedor JWT customizado. Chave/segredos nunca em appsettings.json
-/// versionado — usar dotnet user-secrets localmente e secret manager em produção
-/// (ver CLAUDE.md > Autenticação JWT customizado > Segredos).
+/// Configuration for the custom JWT provider. Keys/secrets never in versioned
+/// appsettings.json — use dotnet user-secrets locally and a secret manager in
+/// production (see CLAUDE.md > Authentication Custom JWT > Secrets).
 /// </summary>
 public sealed class JwtSettings
 {
@@ -12,7 +12,7 @@ public sealed class JwtSettings
     public required string Issuer { get; init; }
     public required string Audience { get; init; }
 
-    /// <summary>Chave HMAC (mínimo 256 bits) via configuração/secret — nunca hardcoded.</summary>
+    /// <summary>HMAC key (minimum 256 bits) via configuration/secret — never hardcoded.</summary>
     public required string SigningKey { get; init; }
 
     public int AccessTokenMinutes { get; init; } = 15;

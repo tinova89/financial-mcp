@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace FinancialMcp.Infrastructure.Auth;
 
-/// <summary>Implementação de ICurrentUserService a partir do HttpContext (JWT já validado pelo middleware).</summary>
+/// <summary>Implementation of ICurrentUserService from HttpContext (JWT already validated by middleware).</summary>
 public sealed class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
     public Guid? UserId
