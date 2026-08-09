@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://financial-mcphost.dev.localhost:17153;http://financial-mcphost.dev.localhost:15111",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21245",
+        "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL": "https://localhost:23205",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:22163"
+      }
+    },
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://financial-mcphost.dev.localhost:15111",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19092",
+        "ASPIRE_DASHBOARD_MCP_ENDPOINT_URL": "http://localhost:18208",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20297"
+      }
+    }
+  }
+}

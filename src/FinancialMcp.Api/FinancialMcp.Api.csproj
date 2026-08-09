@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FinancialMcp.Infrastructure.Auth\FinancialMcp.Infrastructure.Auth.csproj" />
     <ProjectReference Include="..\FinancialMcp.ServiceDefaults\FinancialMcp.ServiceDefaults.csproj" />
     <ProjectReference Include="..\FinancialMcp.Application\FinancialMcp.Application.csproj" />
     <ProjectReference Include="..\FinancialMcp.Infrastructure\FinancialMcp.Infrastructure.csproj" />

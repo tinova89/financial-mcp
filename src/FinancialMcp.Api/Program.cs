@@ -6,6 +6,9 @@ using FinancialMcp.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Machine-specific overrides (optional). Loaded after appsettings.json and appsettings.{Environment}.json.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // Defaults compartilhados do Aspire: OpenTelemetry, health checks, resiliência
 // (ver CLAUDE.md > Arquitetura > Aspire).
 builder.AddServiceDefaults();
@@ -14,9 +17,12 @@ builder.AddServiceDefaults();
 // é injetada automaticamente por service discovery (nunca hardcoded aqui).
 builder.AddNpgsqlDbContext<ApplicationDbContext>("financialmcp-db");
 
+
 // Camadas da aplicação (ver CLAUDE.md > Padrão Mediator > Registro e > Autenticação).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+//builder.Services.AddInfrastructureAuth(builder.Configuration);
+builder.Services.AddInfrastructureNpgsqPersistence("financialmcp-db", builder.Configuration);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -39,13 +45,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseAuthentication();
-app.UseAuthorization();
+//app.UseAuthentication();
+//app.UseAuthorization();
 
-app.MapAuthEndpoints();
+//app.MapAuthEndpoints();
 
 // Endpoint MCP autenticado por JWT bearer — mesmo esquema/pipeline da REST API.
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp")
+    //.RequireAuthorization()
+    ;
 
 await app.RunAsync();
 

@@ -1,3 +1,4 @@
+using FinancialMcp.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,18 +12,23 @@ namespace FinancialMcp.Infrastructure.Persistence;
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructurePersistence(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructureNpgsqPersistence(this IServiceCollection services, string connectionStringName, IConfiguration configuration)
     {
         // A connection string real é injetada pelo Aspire via AddNpgsqlDbContext
         // no Program.cs da Api (ConnectionStrings:financialmcp-db). Aqui registramos
         // apenas o provider e as opções que não dependem do host Aspire.
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("financialmcp-db");
+            var connectionString = configuration.GetConnectionString(connectionStringName);
             if (!string.IsNullOrWhiteSpace(connectionString))
             {
                 options.UseNpgsql(connectionString);
             }
+        });
+
+        services.AddScoped<IApplicationDbContext>(provider =>
+        {
+            return provider.GetRequiredService<ApplicationDbContext>();
         });
         return services;
     }

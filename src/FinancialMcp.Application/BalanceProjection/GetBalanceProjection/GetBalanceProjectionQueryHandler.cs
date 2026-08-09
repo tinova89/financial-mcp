@@ -18,12 +18,12 @@ namespace FinancialMcp.Application.BalanceProjection.GetBalanceProjection;
 ///     conta corrente, na data de vencimento (ajustada para o próximo dia útil).
 /// </summary>
 public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
-    : IRequestHandler<GetBalanceProjectionQuery, IReadOnlyList<ProjecaoMensalDto>>
+    : IRequestHandler<GetBalanceProjectionQuery, IReadOnlyList<MonthlyProjectionDto>>
 {
-    public async Task<IReadOnlyList<ProjecaoMensalDto>> Handle(GetBalanceProjectionQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<MonthlyProjectionDto>> Handle(GetBalanceProjectionQuery request, CancellationToken cancellationToken)
     {
         var cartoes = await db.Cartoes.AsNoTracking()
-            .Where(c => c.ContaId == request.ContaId)
+            .Where(c => c.ContaId == request.AccountId)
             .ToListAsync(cancellationToken);
 
         var cartaoIds = cartoes.Select(c => c.Id).ToHashSet();
@@ -35,13 +35,13 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
         var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
         var mesInicial = MesAno.FromDate(hoje);
 
-        var resultado = new List<ProjecaoMensalDto>(request.MesesAFrente);
+        var resultado = new List<MonthlyProjectionDto>(request.MonthsAhead);
 
-        for (var i = 0; i < request.MesesAFrente; i++)
+        for (var i = 0; i < request.MonthsAhead; i++)
         {
             var mesAno = mesInicial.AdicionarMeses(i);
 
-            var lancamentosDoMes = new List<LancamentoProjetadoDto>();
+            var lancamentosDoMes = new List<ProjectedEntryDto>();
 
             // 1) Lançamentos já existentes no extrato para este Mês_Ano (Venc. Fatura).
             var existentes = lancamentosCartao
@@ -54,7 +54,7 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
                     ? $"{t.ParcelaAtual}/{t.ParcelaTotal}"
                     : null;
 
-                lancamentosDoMes.Add(new LancamentoProjetadoDto(t.Descricao, t.Valor, t.VencimentoFatura!.Value, Projetado: false, label));
+                lancamentosDoMes.Add(new ProjectedEntryDto(t.Descricao, t.Valor, t.VencimentoFatura!.Value, Projected: false, label));
             }
 
             // 2) Parcelas restantes de "Parcelado" cuja parcela deste mês ainda não existe no extrato.
@@ -93,11 +93,11 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
 
                 var vencimentoProjetado = vencimentoBase.Value.AddMonths(mesAno.Ano * 12 + mesAno.Mes - (mesDaUltimaConhecida.Ano * 12 + mesDaUltimaConhecida.Mes));
 
-                lancamentosDoMes.Add(new LancamentoProjetadoDto(
+                lancamentosDoMes.Add(new ProjectedEntryDto(
                     RemoverSufixoParcela(ultimaParcelaConhecida.Descricao),
                     ultimaParcelaConhecida.Valor,
                     vencimentoProjetado,
-                    Projetado: true,
+                    Projected: true,
                     $"{parcelaProjetada}/{ultimaParcelaConhecida.ParcelaTotal}"));
             }
 
@@ -117,18 +117,18 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
                 }
 
                 var diff = mesAno.Ano * 12 + mesAno.Mes - (mesDoFixo.Ano * 12 + mesDoFixo.Mes);
-                lancamentosDoMes.Add(new LancamentoProjetadoDto(
-                    fixo.Descricao, fixo.Valor, fixo.VencimentoFatura.Value.AddMonths(diff), Projetado: true, ParcelaLabel: null));
+                lancamentosDoMes.Add(new ProjectedEntryDto(
+                    fixo.Descricao, fixo.Valor, fixo.VencimentoFatura.Value.AddMonths(diff), Projected: true, InstallmentLabel: null));
             }
 
             // 4) Consolidação: soma da fatura -> único "Pagamento de cartão" na conta,
             //    na data de vencimento, ajustada para o próximo dia útil (nunca a fatura crua na CC).
-            var totalFatura = lancamentosDoMes.Sum(l => Math.Abs(l.Valor));
+            var totalFatura = lancamentosDoMes.Sum(l => Math.Abs(l.Amount));
             var dataVencimentoCartao = lancamentosDoMes.Count > 0
-                ? BusinessDayHelper.ProximoDiaUtil(lancamentosDoMes.Max(l => l.Data))
+                ? BusinessDayHelper.ProximoDiaUtil(lancamentosDoMes.Max(l => l.EntryDate))
                 : (DateOnly?)null;
 
-            resultado.Add(new ProjecaoMensalDto(mesAno.Ano, mesAno.Mes, lancamentosDoMes, totalFatura, dataVencimentoCartao));
+            resultado.Add(new MonthlyProjectionDto(mesAno.Ano, mesAno.Mes, lancamentosDoMes, totalFatura, dataVencimentoCartao));
         }
 
         return resultado;

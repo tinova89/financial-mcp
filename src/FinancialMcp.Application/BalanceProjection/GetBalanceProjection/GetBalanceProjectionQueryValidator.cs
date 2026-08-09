@@ -6,7 +6,7 @@ public sealed class GetBalanceProjectionQueryValidator : AbstractValidator<GetBa
 {
     public GetBalanceProjectionQueryValidator()
     {
-        RuleFor(x => x.ContaId).NotEmpty();
-        RuleFor(x => x.MesesAFrente).InclusiveBetween(1, 24);
+        RuleFor(x => x.AccountId).NotEmpty();
+        RuleFor(x => x.MonthsAhead).InclusiveBetween(1, 24);
     }
 }
