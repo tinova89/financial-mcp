@@ -17,7 +17,7 @@ public class BusinessDayHelperTests
     public void ProximoDiaUtil_deve_virar_fim_de_semana_para_segunda(
         int ano, int mes, int dia, int anoEsperado, int mesEsperado, int diaEsperado)
     {
-        var resultado = BusinessDayHelper.ProximoDiaUtil(new DateOnly(ano, mes, dia));
+        var resultado = BusinessDayHelper.NextBusinessDay(new DateOnly(ano, mes, dia));
 
         resultado.Should().Be(new DateOnly(anoEsperado, mesEsperado, diaEsperado));
     }

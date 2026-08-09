@@ -12,7 +12,7 @@ public sealed class GetTransactionQueryHandler(IApplicationDbContext db)
 {
     public async Task<TransactionDto> Handle(GetTransactionQuery request, CancellationToken cancellationToken)
     {
-        var t = await db.Transacoes.AsNoTracking()
+        var t = await db.Transactions.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)

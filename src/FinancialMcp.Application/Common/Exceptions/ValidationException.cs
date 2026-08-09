@@ -3,8 +3,8 @@ using FluentValidation.Results;
 namespace FinancialMcp.Application.Common.Exceptions;
 
 /// <summary>
-/// Lançada pelo ValidationBehavior quando um ou mais IValidator&lt;TRequest&gt; falham.
-/// Mapeada para erro MCP/HTTP apropriado na camada de API (ver CLAUDE.md > Padrão Mediator).
+/// Thrown by ValidationBehavior when one or more IValidator&lt;TRequest&gt; fail.
+/// Mapped to the appropriate MCP/HTTP error in the API layer (see CLAUDE.md > Mediator Pattern).
 /// </summary>
 public sealed class ValidationException : Exception
 {

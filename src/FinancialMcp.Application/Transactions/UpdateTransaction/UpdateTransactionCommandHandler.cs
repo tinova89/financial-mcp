@@ -13,7 +13,7 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db)
 {
     public async Task<TransactionDto> Handle(UpdateTransactionCommand request, CancellationToken cancellationToken)
     {
-        var t = await db.Transacoes
+        var t = await db.Transactions
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)
@@ -22,12 +22,12 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db)
         }
 
         if (request.Status is not null) t.Status = Enum.Parse<StatusTransacao>(request.Status);
-        if (request.CategoriaBruta is not null) t.CategoriaBruta = request.CategoriaBruta;
-        if (request.Valor is not null) t.Valor = request.Valor.Value;
-        if (request.DataPrevista is not null) t.DataPrevista = request.DataPrevista.Value;
-        if (request.DataEfetiva is not null) t.DataEfetiva = request.DataEfetiva;
-        if (request.DataConciliado is not null) t.DataConciliado = request.DataConciliado;
-        if (request.VencimentoFatura is not null) t.VencimentoFatura = request.VencimentoFatura;
+        if (request.RawCategory is not null) t.CategoriaBruta = request.RawCategory;
+        if (request.Amount is not null) t.Valor = request.Amount.Value;
+        if (request.ExpectedDate is not null) t.DataPrevista = request.ExpectedDate.Value;
+        if (request.ActualDate is not null) t.DataEfetiva = request.ActualDate;
+        if (request.ReconciledDate is not null) t.DataConciliado = request.ReconciledDate;
+        if (request.InvoiceDueDate is not null) t.VencimentoFatura = request.InvoiceDueDate;
 
         t.UpdatedAt = DateTimeOffset.UtcNow;
 

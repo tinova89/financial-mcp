@@ -7,14 +7,14 @@ using Microsoft.Extensions.Logging;
 namespace FinancialMcp.Application.Common.Behaviors;
 
 /// <summary>
-/// Marca requests que precisam de transação de banco explícita (commands que gravam
-/// via EF Core). Ver CLAUDE.md > Padrão Mediator > Pipeline behaviors, item 3.
+/// Marks requests that need an explicit database transaction (commands that write
+/// via EF Core). See CLAUDE.md > Mediator Pattern > Pipeline behaviors, item 3.
 /// </summary>
 public interface ITransactionalRequest;
 
 /// <summary>
-/// 3º behavior do pipeline (apenas para requests que implementam ITransactionalRequest):
-/// abre transação de banco, executa o handler, faz commit/rollback.
+/// 3rd pipeline behavior (only for requests implementing ITransactionalRequest):
+/// opens a database transaction, runs the handler, commits/rolls back.
 /// </summary>
 public sealed class TransactionBehavior<TRequest, TResponse>(
     DbContext dbContext,
@@ -36,7 +36,7 @@ public sealed class TransactionBehavior<TRequest, TResponse>(
 
         if (dbContext.Database.CurrentTransaction is not null)
         {
-            // Já existe uma transação em andamento (ex.: chamada aninhada) — não abrir outra.
+            // A transaction is already in progress (e.g. nested call) — don't open another one.
             return await next();
         }
 

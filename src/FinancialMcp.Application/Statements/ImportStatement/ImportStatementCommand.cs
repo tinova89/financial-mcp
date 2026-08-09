@@ -4,17 +4,17 @@ using MediatR;
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
 /// <summary>
-/// Importa um novo extrato CSV (CC ou CD) para a base. Corresponde à tool MCP
-/// `import_statement`. Formato de origem: separador ";", datas "dd/mm/aaaa",
-/// decimal com ponto (ver CLAUDE.md > MCP e Convenções de Código).
+/// Imports a new CSV statement (checking account or credit card) into the database. Corresponds to the MCP tool
+/// `import_statement`. Source format: ";" separator, "dd/mm/yyyy" dates,
+/// dot-decimal (see CLAUDE.md > MCP and Code Conventions).
 /// </summary>
 public sealed record ImportStatementCommand(
-    string Origem,          // "ContaCorrente" | "CartaoCredito"
-    Guid? ContaId,
-    Guid? CartaoId,
+    string Source,          // "ContaCorrente" | "CartaoCredito"
+    Guid? AccountId,
+    Guid? CardId,
     string CsvContent) : IRequest<ImportStatementResultDto>, ITransactionalRequest;
 
 public sealed record ImportStatementResultDto(
-    int LinhasProcessadas,
-    int LinhasImportadas,
-    IReadOnlyList<string> Avisos);
+    int LinesProcessed,
+    int LinesImported,
+    IReadOnlyList<string> Warnings);

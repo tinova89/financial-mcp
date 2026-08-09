@@ -4,25 +4,25 @@ using MediatR;
 namespace FinancialMcp.Application.Transactions.ListTransactions;
 
 /// <summary>
-/// Lista transações de CC e/ou CD com filtros. Corresponde à tool MCP
-/// `list_transactions` (ver CLAUDE.md > MCP). Todos os filtros são opcionais.
+/// Lists checking account and/or credit card transactions with filters. Corresponds to the MCP tool
+/// `list_transactions` (see CLAUDE.md > MCP). All filters are optional.
 /// </summary>
 public sealed record ListTransactionsQuery(
-    string? Origem = null,
-    string? Tipo = null,
+    string? Source = null,
+    string? Type = null,
     string? Status = null,
-    string? CategoriaMae = null,
-    string? Subcategoria = null,
-    Guid? ContaId = null,
-    Guid? CartaoId = null,
-    DateOnly? PeriodoInicio = null,
-    DateOnly? PeriodoFim = null,
-    int? Ano = null,
-    int? Mes = null,
+    string? ParentCategory = null,
+    string? Subcategory = null,
+    Guid? AccountId = null,
+    Guid? CardId = null,
+    DateOnly? PeriodStart = null,
+    DateOnly? PeriodEnd = null,
+    int? Year = null,
+    int? Month = null,
     int Page = 1,
     int PageSize = 50) : IRequest<PagedResult<TransactionDto>>;
 
-/// <summary>Resultado paginado — estratégia de paginação padrão para list_transactions em bases grandes.</summary>
+/// <summary>Paginated result — default pagination strategy for list_transactions on large datasets.</summary>
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount)
 {
     public int TotalPages => PageSize == 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);

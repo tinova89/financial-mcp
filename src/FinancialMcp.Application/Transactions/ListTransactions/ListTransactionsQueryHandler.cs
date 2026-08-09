@@ -8,24 +8,24 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.Transactions.ListTransactions;
 
 /// <summary>
-/// Handler único para ListTransactionsQuery. Regra de cálculo pura de categoria
-/// (parse "Categoria-mãe/Subcategoria") delegada ao value object Categoria do domínio.
+/// Single handler for ListTransactionsQuery. Pure category calculation rule
+/// (parsing "Categoria-mãe/Subcategoria") delegated to the domain's Categoria value object.
 /// </summary>
 public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
     : IRequestHandler<ListTransactionsQuery, PagedResult<TransactionDto>>
 {
     public async Task<PagedResult<TransactionDto>> Handle(ListTransactionsQuery request, CancellationToken cancellationToken)
     {
-        var query = db.Transacoes.AsNoTracking().AsQueryable();
+        var query = db.Transactions.AsNoTracking().AsQueryable();
 
-        if (request.Origem is not null)
+        if (request.Source is not null)
         {
-            query = query.Where(t => t.Origem == Enum.Parse<OrigemTransacao>(request.Origem));
+            query = query.Where(t => t.Origem == Enum.Parse<OrigemTransacao>(request.Source));
         }
 
-        if (request.Tipo is not null)
+        if (request.Type is not null)
         {
-            query = query.Where(t => t.Tipo == Enum.Parse<TipoTransacao>(request.Tipo));
+            query = query.Where(t => t.Tipo == Enum.Parse<TipoTransacao>(request.Type));
         }
 
         if (request.Status is not null)
@@ -33,50 +33,50 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
             query = query.Where(t => t.Status == Enum.Parse<StatusTransacao>(request.Status));
         }
 
-        if (request.ContaId is not null)
+        if (request.AccountId is not null)
         {
-            query = query.Where(t => t.ContaId == request.ContaId);
+            query = query.Where(t => t.ContaId == request.AccountId);
         }
 
-        if (request.CartaoId is not null)
+        if (request.CardId is not null)
         {
-            query = query.Where(t => t.CartaoId == request.CartaoId);
+            query = query.Where(t => t.CartaoId == request.CardId);
         }
 
-        if (request.PeriodoInicio is not null)
+        if (request.PeriodStart is not null)
         {
-            query = query.Where(t => t.DataPrevista >= request.PeriodoInicio);
+            query = query.Where(t => t.DataPrevista >= request.PeriodStart);
         }
 
-        if (request.PeriodoFim is not null)
+        if (request.PeriodEnd is not null)
         {
-            query = query.Where(t => t.DataPrevista <= request.PeriodoFim);
+            query = query.Where(t => t.DataPrevista <= request.PeriodEnd);
         }
 
-        if (request.CategoriaMae is not null)
+        if (request.ParentCategory is not null)
         {
-            // EF.Functions.Like evita trazer tudo para memória antes de filtrar por categoria-mãe.
-            query = query.Where(t => EF.Functions.Like(t.CategoriaBruta, $"{request.CategoriaMae}%"));
+            // EF.Functions.Like avoids bringing everything into memory before filtering by parent category.
+            query = query.Where(t => EF.Functions.Like(t.CategoriaBruta, $"{request.ParentCategory}%"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var transacoes = await query
+        var transactions = await query
             .OrderByDescending(t => t.DataPrevista)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        // Filtros de Subcategoria/Ano/Mês dependem do value object Categoria e do
-        // MesAno de referência calculado em memória (Data Conciliado x Venc. Fatura).
-        var itensFiltrados = transacoes
-            .Where(t => request.Subcategoria is null || t.Categoria.Subcategoria == request.Subcategoria)
-            .Where(t => request.Ano is null || t.ObterMesAnoReferencia()?.Ano == request.Ano)
-            .Where(t => request.Mes is null || t.ObterMesAnoReferencia()?.Mes == request.Mes)
+        // Subcategory/Year/Month filters depend on the Categoria value object and the
+        // reference MesAno calculated in memory (Data Conciliado vs. Venc. Fatura).
+        var filteredItems = transactions
+            .Where(t => request.Subcategory is null || t.Categoria.Subcategoria == request.Subcategory)
+            .Where(t => request.Year is null || t.ObterMesAnoReferencia()?.Ano == request.Year)
+            .Where(t => request.Month is null || t.ObterMesAnoReferencia()?.Mes == request.Month)
             .Select(Map)
             .ToList();
 
-        return new PagedResult<TransactionDto>(itensFiltrados, request.Page, request.PageSize, totalCount);
+        return new PagedResult<TransactionDto>(filteredItems, request.Page, request.PageSize, totalCount);
     }
 
     private static TransactionDto Map(Transacao t) => new(

@@ -7,24 +7,24 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.Transactions.DeleteTransaction;
 
 /// <summary>
-/// Handler único para DeleteTransactionCommand. A confirmação já foi validada pelo
-/// ValidationBehavior antes deste handler ser alcançado; aqui apenas aplica o soft delete.
+/// Single handler for DeleteTransactionCommand. The confirmation has already been
+/// validated by ValidationBehavior before this handler is reached; here it only applies the soft delete.
 /// </summary>
 public sealed class DeleteTransactionCommandHandler(IApplicationDbContext db)
     : IRequestHandler<DeleteTransactionCommand>
 {
     public async Task Handle(DeleteTransactionCommand request, CancellationToken cancellationToken)
     {
-        var transacao = await db.Transacoes
+        var transaction = await db.Transactions
             .FirstOrDefaultAsync(t => t.Id == request.TransactionId, cancellationToken);
 
-        if (transacao is null)
+        if (transaction is null)
         {
             throw new NotFoundException(nameof(Transacao), request.TransactionId);
         }
 
-        transacao.MarkAsDeleted();
+        transaction.MarkAsDeleted();
 
-        // SaveChangesAsync final é feito pelo TransactionBehavior (commit da transação de banco).
+        // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
     }
 }

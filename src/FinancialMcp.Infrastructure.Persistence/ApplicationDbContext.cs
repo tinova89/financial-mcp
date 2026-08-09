@@ -11,10 +11,10 @@ namespace FinancialMcp.Infrastructure.Persistence;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : DbContext(options), IApplicationDbContext
 {
-    public DbSet<Transacao> Transacoes => Set<Transacao>();
-    public DbSet<Conta> Contas => Set<Conta>();
-    public DbSet<Cartao> Cartoes => Set<Cartao>();
-    public DbSet<MetaOrcamento> MetasOrcamento => Set<MetaOrcamento>();
+    public DbSet<Transacao> Transactions => Set<Transacao>();
+    public DbSet<Conta> Accounts => Set<Conta>();
+    public DbSet<Cartao> Cards => Set<Cartao>();
+    public DbSet<MetaOrcamento> BudgetGoals => Set<MetaOrcamento>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

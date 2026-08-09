@@ -8,73 +8,73 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
 
 /// <summary>
-/// Handler único para GetBudgetStatusQuery. Implementa exatamente as regras de
-/// CLAUDE.md > Regras de Negócio > Metas de orçamento:
-///  1. Apenas Status = Conciliado.
-///  2. Apenas Tipo = Despesa (nunca Receita/Transferência/Pagamento).
-///  3. Mês_Ano: "Data Conciliado" (CC) / "Venc. Fatura" (CD).
+/// Single handler for GetBudgetStatusQuery. Implements exactly the rules from
+/// CLAUDE.md > Business Rules > Budget goals:
+///  1. Only Status = Conciliado.
+///  2. Only Tipo = Despesa (never Receita/Transferência/Pagamento).
+///  3. Mês_Ano: "Data Conciliado" (checking account) / "Venc. Fatura" (credit card).
 ///  4. Gasto_Real / Saldo_Meta / % Utilizado.
-///  5. Categorias sem meta não entram no resultado.
+///  5. Categories without a goal don't appear in the result.
 /// </summary>
 public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetBudgetStatusQuery, IReadOnlyList<BudgetStatusDto>>
 {
     public async Task<IReadOnlyList<BudgetStatusDto>> Handle(GetBudgetStatusQuery request, CancellationToken cancellationToken)
     {
-        var mesAnoAlvo = new MesAno(request.Ano, request.Mes);
+        var targetMonthYear = new MesAno(request.Year, request.Month);
 
-        var metas = await db.MetasOrcamento
+        var budgetGoals = await db.BudgetGoals
             .AsNoTracking()
-            .Where(m => m.Ano == request.Ano && m.Mes == request.Mes)
+            .Where(m => m.Ano == request.Year && m.Mes == request.Month)
             .ToListAsync(cancellationToken);
 
-        if (metas.Count == 0)
+        if (budgetGoals.Count == 0)
         {
             return [];
         }
 
-        // Traz um universo razoável de candidatas (Despesa + Conciliado) e filtra o
-        // Mês_Ano de referência em memória, pois ele depende de qual coluna de data
-        // usar conforme a Origem (regra que não é diretamente traduzível para SQL simples
-        // sem duplicar lógica — mantida centralizada em Transacao.ObterMesAnoReferencia()).
-        var candidatas = await db.Transacoes
+        // Brings in a reasonable universe of candidates (Despesa + Conciliado) and filters the
+        // reference Mês_Ano in memory, since it depends on which date column to use
+        // based on the Origem (a rule that isn't directly translatable to plain SQL
+        // without duplicating logic — kept centralized in Transacao.ObterMesAnoReferencia()).
+        var candidates = await db.Transactions
             .AsNoTracking()
             .Where(t => t.Status == StatusTransacao.Conciliado && t.Tipo == TipoTransacao.Despesa)
             .ToListAsync(cancellationToken);
 
-        var despesasDoMes = candidatas
-            .Where(t => t.ObterMesAnoReferencia() == mesAnoAlvo)
+        var monthExpenses = candidates
+            .Where(t => t.ObterMesAnoReferencia() == targetMonthYear)
             .ToList();
 
-        var resultado = new List<BudgetStatusDto>(metas.Count);
+        var result = new List<BudgetStatusDto>(budgetGoals.Count);
 
-        foreach (var meta in metas)
+        foreach (var goal in budgetGoals)
         {
-            var categoriaMeta = meta.Categoria;
+            var goalCategory = goal.Categoria;
 
-            var despesasDaCategoria = despesasDoMes
-                .Where(t => t.Categoria.CasaComMeta(categoriaMeta))
+            var categoryExpenses = monthExpenses
+                .Where(t => t.Categoria.CasaComMeta(goalCategory))
                 .ToList();
 
-            var gastoReal = despesasDaCategoria.Sum(t => Math.Abs(t.Valor));
-            var saldoMeta = meta.MetaValor - gastoReal;
-            decimal? percentualUtilizado = meta.MetaValor == 0m ? null : gastoReal / meta.MetaValor;
+            var actualSpent = categoryExpenses.Sum(t => Math.Abs(t.Valor));
+            var remainingBudget = goal.MetaValor - actualSpent;
+            decimal? utilizationPercentage = goal.MetaValor == 0m ? null : actualSpent / goal.MetaValor;
 
-            var detalhamento = despesasDaCategoria
+            var breakdown = categoryExpenses
                 .GroupBy(t => t.Categoria.Subcategoria)
-                .Select(g => new SubcategoriaBreakdownDto(g.Key, g.Sum(t => Math.Abs(t.Valor))))
-                .OrderByDescending(d => d.GastoReal)
+                .Select(g => new SubcategoryBreakdownDto(g.Key, g.Sum(t => Math.Abs(t.Valor))))
+                .OrderByDescending(d => d.ActualSpent)
                 .ToList();
 
-            resultado.Add(new BudgetStatusDto(
-                meta.CategoriaBruta,
-                meta.MetaValor,
-                gastoReal,
-                saldoMeta,
-                percentualUtilizado,
-                detalhamento));
+            result.Add(new BudgetStatusDto(
+                goal.CategoriaBruta,
+                goal.MetaValor,
+                actualSpent,
+                remainingBudget,
+                utilizationPercentage,
+                breakdown));
         }
 
-        return resultado;
+        return result;
     }
 }

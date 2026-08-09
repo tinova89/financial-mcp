@@ -4,22 +4,22 @@ using MediatR;
 namespace FinancialMcp.Application.Transactions.CreateTransaction;
 
 /// <summary>
-/// Insere uma nova transação (CC ou CD), respeitando os campos obrigatórios de
-/// cada extrato. Corresponde à tool MCP `create_transaction` (ver CLAUDE.md > MCP).
+/// Inserts a new transaction (checking account or credit card), honoring the required
+/// fields for each statement type. Corresponds to the MCP tool `create_transaction` (see CLAUDE.md > MCP).
 /// </summary>
 public sealed record CreateTransactionCommand(
-    string Origem,            // "ContaCorrente" | "CartaoCredito"
-    string Tipo,               // "Despesa" | "Receita" | "Transferencia" | "Pagamento"
+    string Source,             // "ContaCorrente" | "CartaoCredito"
+    string Type,                // "Despesa" | "Receita" | "Transferencia" | "Pagamento"
     string Status,
-    string Descricao,
-    decimal Valor,
-    string CategoriaBruta,     // "Categoria-mãe/Subcategoria"
-    DateOnly DataPrevista,
-    DateOnly? DataEfetiva,
-    DateOnly? DataConciliado,
-    DateOnly? VencimentoFatura,
-    string? Repeticao,
-    int? ParcelaAtual,
-    int? ParcelaTotal,
-    Guid? ContaId,
-    Guid? CartaoId) : IRequest<TransactionDto>, ITransactionalRequest;
+    string Description,
+    decimal Amount,
+    string RawCategory,        // "Categoria-mãe/Subcategoria"
+    DateOnly ExpectedDate,
+    DateOnly? ActualDate,
+    DateOnly? ReconciledDate,
+    DateOnly? InvoiceDueDate,
+    string? Recurrence,
+    int? CurrentInstallment,
+    int? TotalInstallments,
+    Guid? AccountId,
+    Guid? CardId) : IRequest<TransactionDto>, ITransactionalRequest;

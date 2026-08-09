@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 namespace FinancialMcp.Application.Common.Behaviors;
 
 /// <summary>
-/// 1º behavior do pipeline: loga request/response (sem dados sensíveis) e integra
-/// com o tracing do Aspire/OpenTelemetry via ActivitySource "FinancialMcp.Application.MediatR"
-/// (ver CLAUDE.md > Padrão Mediator > Pipeline behaviors).
+/// 1st pipeline behavior: logs request/response (no sensitive data) and integrates
+/// with Aspire/OpenTelemetry tracing via the ActivitySource "FinancialMcp.Application.MediatR"
+/// (see CLAUDE.md > Mediator Pattern > Pipeline behaviors).
 /// </summary>
 public sealed class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>

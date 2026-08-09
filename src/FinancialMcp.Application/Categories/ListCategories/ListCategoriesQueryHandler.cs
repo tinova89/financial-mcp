@@ -5,26 +5,26 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.Categories.ListCategories;
 
 public sealed class ListCategoriesQueryHandler(IApplicationDbContext db)
-    : IRequestHandler<ListCategoriesQuery, IReadOnlyList<CategoriaDto>>
+    : IRequestHandler<ListCategoriesQuery, IReadOnlyList<CategoryDto>>
 {
-    public async Task<IReadOnlyList<CategoriaDto>> Handle(ListCategoriesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CategoryDto>> Handle(ListCategoriesQuery request, CancellationToken cancellationToken)
     {
-        var brutas = await db.Transacoes.AsNoTracking()
+        var rawCategories = await db.Transactions.AsNoTracking()
             .Select(t => t.CategoriaBruta)
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        return brutas
+        return rawCategories
             .Select(FinancialMcp.Domain.ValueObjects.Categoria.Parse)
             .GroupBy(c => c.CategoriaMae)
-            .Select(g => new CategoriaDto(
+            .Select(g => new CategoryDto(
                 g.Key,
                 g.Where(c => c.Subcategoria is not null)
                  .Select(c => c.Subcategoria!)
                  .Distinct()
                  .OrderBy(s => s)
                  .ToList()))
-            .OrderBy(c => c.CategoriaMae)
+            .OrderBy(c => c.ParentCategory)
             .ToList();
     }
 }

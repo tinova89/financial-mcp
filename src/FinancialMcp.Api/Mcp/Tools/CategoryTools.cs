@@ -10,6 +10,6 @@ public sealed class CategoryTools(IMediator mediator)
 {
     [McpServerTool(Name = "list_categories"), Description(
         "Lista categorias-mãe e subcategorias em uso (parse de Categoria-mãe/Subcategoria).")]
-    public Task<IReadOnlyList<CategoriaDto>> ListCategoriesAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<CategoryDto>> ListCategoriesAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListCategoriesQuery(), cancellationToken);
 }

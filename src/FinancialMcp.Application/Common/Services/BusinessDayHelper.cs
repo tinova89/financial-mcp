@@ -1,24 +1,24 @@
 namespace FinancialMcp.Application.Common.Services;
 
 /// <summary>
-/// Helper único para "próximo dia útil", reutilizado por GetBalanceProjection e
-/// GetBudgetStatus (ver CLAUDE.md > Convenções de Código > Datas). Considera apenas
-/// fins de semana — feriados nacionais/locais ficam fora de escopo do MVP.
+/// Single helper for "next business day", reused by GetBalanceProjection and
+/// GetBudgetStatus (see CLAUDE.md > Code Conventions > Dates). Considers only
+/// weekends — national/local holidays are out of scope for the MVP.
 /// </summary>
 public static class BusinessDayHelper
 {
-    public static DateOnly ProximoDiaUtil(DateOnly data)
+    public static DateOnly NextBusinessDay(DateOnly date)
     {
-        var resultado = data;
+        var result = date;
 
-        while (resultado.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        while (result.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
         {
-            resultado = resultado.AddDays(1);
+            result = result.AddDays(1);
         }
 
-        return resultado;
+        return result;
     }
 
-    public static bool EhDiaUtil(DateOnly data) =>
-        data.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday);
+    public static bool IsBusinessDay(DateOnly date) =>
+        date.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday);
 }

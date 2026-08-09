@@ -9,11 +9,11 @@ public sealed class ListTransactionsQueryValidator : AbstractValidator<ListTrans
         RuleFor(x => x.Page).GreaterThan(0);
         RuleFor(x => x.PageSize).InclusiveBetween(1, 200);
 
-        RuleFor(x => x.PeriodoFim)
-            .GreaterThanOrEqualTo(x => x.PeriodoInicio!.Value)
-            .When(x => x.PeriodoInicio is not null && x.PeriodoFim is not null)
+        RuleFor(x => x.PeriodEnd)
+            .GreaterThanOrEqualTo(x => x.PeriodStart!.Value)
+            .When(x => x.PeriodStart is not null && x.PeriodEnd is not null)
             .WithMessage("PeriodoFim deve ser maior ou igual a PeriodoInicio.");
 
-        RuleFor(x => x.Mes).InclusiveBetween(1, 12).When(x => x.Mes is not null);
+        RuleFor(x => x.Month).InclusiveBetween(1, 12).When(x => x.Month is not null);
     }
 }

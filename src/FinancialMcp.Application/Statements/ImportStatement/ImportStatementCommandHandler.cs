@@ -8,18 +8,18 @@ public sealed class ImportStatementCommandHandler(IApplicationDbContext db, ISta
 {
     public Task<ImportStatementResultDto> Handle(ImportStatementCommand request, CancellationToken cancellationToken)
     {
-        var transacoes = parser.Parse(request.CsvContent, request.Origem, request.ContaId, request.CartaoId, out var avisos);
+        var transactions = parser.Parse(request.CsvContent, request.Source, request.AccountId, request.CardId, out var warnings);
 
-        foreach (var transacao in transacoes)
+        foreach (var transaction in transactions)
         {
-            db.Transacoes.Add(transacao);
+            db.Transactions.Add(transaction);
         }
 
-        // SaveChangesAsync final é feito pelo TransactionBehavior (commit único para todo o lote).
+        // Final SaveChangesAsync is done by TransactionBehavior (single commit for the whole batch).
 
         return Task.FromResult(new ImportStatementResultDto(
-            LinhasProcessadas: transacoes.Count + avisos.Count,
-            LinhasImportadas: transacoes.Count,
-            Avisos: avisos));
+            LinesProcessed: transactions.Count + warnings.Count,
+            LinesImported: transactions.Count,
+            Warnings: warnings));
     }
 }

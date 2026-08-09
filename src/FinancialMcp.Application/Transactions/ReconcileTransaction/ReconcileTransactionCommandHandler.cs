@@ -12,7 +12,7 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
 {
     public async Task Handle(ReconcileTransactionCommand request, CancellationToken cancellationToken)
     {
-        var t = await db.Transacoes
+        var t = await db.Transactions
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)
@@ -24,10 +24,10 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
 
         if (t.Origem == OrigemTransacao.ContaCorrente)
         {
-            t.DataConciliado = request.DataConciliado ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            t.DataConciliado = request.ReconciledDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         }
 
-        // Publicado após a alteração em memória; o commit real ocorre no TransactionBehavior.
+        // Published after the in-memory change; the actual commit happens in TransactionBehavior.
         await publisher.Publish(new TransactionReconciledNotification(t.Id), cancellationToken);
     }
 }

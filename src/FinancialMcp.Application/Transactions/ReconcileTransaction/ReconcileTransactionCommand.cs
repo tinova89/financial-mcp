@@ -4,9 +4,9 @@ using MediatR;
 namespace FinancialMcp.Application.Transactions.ReconcileTransaction;
 
 /// <summary>
-/// Marca uma transação como Conciliado (CC) ou equivalente em CD. Corresponde à
-/// tool MCP `reconcile_transaction`. Publica TransactionReconciledNotification
-/// (ver CLAUDE.md > Padrão Mediator > Notifications).
+/// Marks a transaction as Conciliado (checking account) or the equivalent for credit card.
+/// Corresponds to the MCP tool `reconcile_transaction`. Publishes TransactionReconciledNotification
+/// (see CLAUDE.md > Mediator Pattern > Notifications).
 /// </summary>
-public sealed record ReconcileTransactionCommand(Guid TransactionId, DateOnly? DataConciliado = null)
+public sealed record ReconcileTransactionCommand(Guid TransactionId, DateOnly? ReconciledDate = null)
     : IRequest, ITransactionalRequest;

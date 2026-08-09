@@ -5,15 +5,15 @@ using MediatR;
 namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 
 /// <summary>
-/// Altera campos de uma transação existente (status, categoria, valor, data).
-/// Corresponde à tool MCP `update_transaction`. Campos nulos são ignorados (patch parcial).
+/// Updates fields of an existing transaction (status, category, amount, date).
+/// Corresponds to the MCP tool `update_transaction`. Null fields are ignored (partial patch).
 /// </summary>
 public sealed record UpdateTransactionCommand(
     Guid TransactionId,
     string? Status = null,
-    string? CategoriaBruta = null,
-    decimal? Valor = null,
-    DateOnly? DataPrevista = null,
-    DateOnly? DataEfetiva = null,
-    DateOnly? DataConciliado = null,
-    DateOnly? VencimentoFatura = null) : IRequest<TransactionDto>, ITransactionalRequest;
+    string? RawCategory = null,
+    decimal? Amount = null,
+    DateOnly? ExpectedDate = null,
+    DateOnly? ActualDate = null,
+    DateOnly? ReconciledDate = null,
+    DateOnly? InvoiceDueDate = null) : IRequest<TransactionDto>, ITransactionalRequest;

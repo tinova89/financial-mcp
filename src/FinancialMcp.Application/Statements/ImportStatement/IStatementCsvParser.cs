@@ -3,11 +3,11 @@ using FinancialMcp.Domain.Entities;
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
 /// <summary>
-/// Parser do formato de extrato (separador ";", datas dd/mm/aaaa, decimal com
-/// ponto). Implementado em FinancialMcp.Infrastructure (usa CsvHelper) e injetado
-/// aqui via abstração, para manter a Application livre de dependência de I/O.
+/// Parser for the statement format (";" separator, dd/mm/yyyy dates, dot-decimal).
+/// Implemented in FinancialMcp.Infrastructure (uses CsvHelper) and injected
+/// here via abstraction, to keep the Application layer free of I/O dependencies.
 /// </summary>
 public interface IStatementCsvParser
 {
-    IReadOnlyList<Transacao> Parse(string csvContent, string origem, Guid? contaId, Guid? cartaoId, out IReadOnlyList<string> avisos);
+    IReadOnlyList<Transacao> Parse(string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings);
 }

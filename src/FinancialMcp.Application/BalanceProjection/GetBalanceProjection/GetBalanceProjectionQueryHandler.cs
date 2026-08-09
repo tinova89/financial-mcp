@@ -9,147 +9,147 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.BalanceProjection.GetBalanceProjection;
 
 /// <summary>
-/// Handler único para GetBalanceProjectionQuery. Implementa CLAUDE.md > Regras de
-/// Negócio > Cartão de crédito — ciclo de fatura, parcelamento e projeção:
-///  1. Usa sempre "Venc. Fatura" (nunca "Data prevista") como data que impacta o saldo.
-///  2. Gera parcelas restantes de lançamentos "Parcelado" ainda não presentes no extrato.
-///  3. Repete lançamentos "Fixo Mês" todo mês.
-///  4. Consolida a fatura do cartão em um único lançamento "Pagamento de cartão" na
-///     conta corrente, na data de vencimento (ajustada para o próximo dia útil).
+/// Single handler for GetBalanceProjectionQuery. Implements CLAUDE.md > Business
+/// Rules > Credit card — billing cycle, installments and projection:
+///  1. Always uses "Venc. Fatura" (never "Data prevista") as the date that impacts the balance.
+///  2. Generates remaining installments for "Parcelado" entries not yet present in the statement.
+///  3. Repeats "Fixo Mês" entries every month.
+///  4. Consolidates the card bill into a single "Pagamento de cartão" entry in the
+///     checking account, on the due date (adjusted to the next business day).
 /// </summary>
 public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetBalanceProjectionQuery, IReadOnlyList<MonthlyProjectionDto>>
 {
     public async Task<IReadOnlyList<MonthlyProjectionDto>> Handle(GetBalanceProjectionQuery request, CancellationToken cancellationToken)
     {
-        var cartoes = await db.Cartoes.AsNoTracking()
+        var cards = await db.Cards.AsNoTracking()
             .Where(c => c.ContaId == request.AccountId)
             .ToListAsync(cancellationToken);
 
-        var cartaoIds = cartoes.Select(c => c.Id).ToHashSet();
+        var cardIds = cards.Select(c => c.Id).ToHashSet();
 
-        var lancamentosCartao = await db.Transacoes.AsNoTracking()
-            .Where(t => t.Origem == OrigemTransacao.CartaoCredito && t.CartaoId != null && cartaoIds.Contains(t.CartaoId!.Value))
+        var cardEntries = await db.Transactions.AsNoTracking()
+            .Where(t => t.Origem == OrigemTransacao.CartaoCredito && t.CartaoId != null && cardIds.Contains(t.CartaoId!.Value))
             .ToListAsync(cancellationToken);
 
-        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
-        var mesInicial = MesAno.FromDate(hoje);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var startMonth = MesAno.FromDate(today);
 
-        var resultado = new List<MonthlyProjectionDto>(request.MonthsAhead);
+        var result = new List<MonthlyProjectionDto>(request.MonthsAhead);
 
         for (var i = 0; i < request.MonthsAhead; i++)
         {
-            var mesAno = mesInicial.AdicionarMeses(i);
+            var monthYear = startMonth.AdicionarMeses(i);
 
-            var lancamentosDoMes = new List<ProjectedEntryDto>();
+            var monthEntries = new List<ProjectedEntryDto>();
 
-            // 1) Lançamentos já existentes no extrato para este Mês_Ano (Venc. Fatura).
-            var existentes = lancamentosCartao
-                .Where(t => t.VencimentoFatura is not null && MesAno.FromDate(t.VencimentoFatura.Value) == mesAno)
+            // 1) Entries already present in the statement for this Mês_Ano (Venc. Fatura).
+            var existingEntries = cardEntries
+                .Where(t => t.VencimentoFatura is not null && MesAno.FromDate(t.VencimentoFatura.Value) == monthYear)
                 .ToList();
 
-            foreach (var t in existentes)
+            foreach (var t in existingEntries)
             {
                 var label = t.Repeticao == TipoRepeticao.Parcelado && t.ParcelaAtual is not null && t.ParcelaTotal is not null
                     ? $"{t.ParcelaAtual}/{t.ParcelaTotal}"
                     : null;
 
-                lancamentosDoMes.Add(new ProjectedEntryDto(t.Descricao, t.Valor, t.VencimentoFatura!.Value, Projected: false, label));
+                monthEntries.Add(new ProjectedEntryDto(t.Descricao, t.Valor, t.VencimentoFatura!.Value, Projected: false, label));
             }
 
-            // 2) Parcelas restantes de "Parcelado" cuja parcela deste mês ainda não existe no extrato.
-            foreach (var grupo in lancamentosCartao
+            // 2) Remaining installments of "Parcelado" entries whose installment for this month doesn't exist yet in the statement.
+            foreach (var group in cardEntries
                          .Where(t => t.Repeticao == TipoRepeticao.Parcelado && t.ParcelaAtual is not null && t.ParcelaTotal is not null)
-                         .GroupBy(t => new { t.CartaoId, DescricaoBase = RemoverSufixoParcela(t.Descricao) }))
+                         .GroupBy(t => new { t.CartaoId, BaseDescription = RemoveInstallmentSuffix(t.Descricao) }))
             {
-                var ultimaParcelaConhecida = grupo.OrderByDescending(t => t.ParcelaAtual).First();
-                var parcelaProjetada = ultimaParcelaConhecida.ParcelaAtual!.Value + ParcelasJaGeradasAte(ultimaParcelaConhecida, mesAno);
+                var lastKnownInstallment = group.OrderByDescending(t => t.ParcelaAtual).First();
+                var projectedInstallment = lastKnownInstallment.ParcelaAtual!.Value + InstallmentsAlreadyGeneratedUntil(lastKnownInstallment, monthYear);
 
-                if (parcelaProjetada > ultimaParcelaConhecida.ParcelaTotal!.Value)
+                if (projectedInstallment > lastKnownInstallment.ParcelaTotal!.Value)
                 {
-                    continue; // parcelamento já encerrado
+                    continue; // installment plan already finished
                 }
 
-                var vencimentoBase = ultimaParcelaConhecida.VencimentoFatura;
-                if (vencimentoBase is null)
-                {
-                    continue;
-                }
-
-                var mesDaUltimaConhecida = MesAno.FromDate(vencimentoBase.Value);
-                if (mesAno.Ano * 12 + mesAno.Mes <= mesDaUltimaConhecida.Ano * 12 + mesDaUltimaConhecida.Mes)
-                {
-                    continue; // este mês já está coberto por um lançamento existente
-                }
-
-                var jaExisteNesteMes = existentes.Any(t =>
-                    t.CartaoId == ultimaParcelaConhecida.CartaoId &&
-                    RemoverSufixoParcela(t.Descricao) == RemoverSufixoParcela(ultimaParcelaConhecida.Descricao));
-
-                if (jaExisteNesteMes)
+                var baseDueDate = lastKnownInstallment.VencimentoFatura;
+                if (baseDueDate is null)
                 {
                     continue;
                 }
 
-                var vencimentoProjetado = vencimentoBase.Value.AddMonths(mesAno.Ano * 12 + mesAno.Mes - (mesDaUltimaConhecida.Ano * 12 + mesDaUltimaConhecida.Mes));
+                var lastKnownMonth = MesAno.FromDate(baseDueDate.Value);
+                if (monthYear.Ano * 12 + monthYear.Mes <= lastKnownMonth.Ano * 12 + lastKnownMonth.Mes)
+                {
+                    continue; // this month is already covered by an existing entry
+                }
 
-                lancamentosDoMes.Add(new ProjectedEntryDto(
-                    RemoverSufixoParcela(ultimaParcelaConhecida.Descricao),
-                    ultimaParcelaConhecida.Valor,
-                    vencimentoProjetado,
+                var alreadyExistsThisMonth = existingEntries.Any(t =>
+                    t.CartaoId == lastKnownInstallment.CartaoId &&
+                    RemoveInstallmentSuffix(t.Descricao) == RemoveInstallmentSuffix(lastKnownInstallment.Descricao));
+
+                if (alreadyExistsThisMonth)
+                {
+                    continue;
+                }
+
+                var projectedDueDate = baseDueDate.Value.AddMonths(monthYear.Ano * 12 + monthYear.Mes - (lastKnownMonth.Ano * 12 + lastKnownMonth.Mes));
+
+                monthEntries.Add(new ProjectedEntryDto(
+                    RemoveInstallmentSuffix(lastKnownInstallment.Descricao),
+                    lastKnownInstallment.Valor,
+                    projectedDueDate,
                     Projected: true,
-                    $"{parcelaProjetada}/{ultimaParcelaConhecida.ParcelaTotal}"));
+                    $"{projectedInstallment}/{lastKnownInstallment.ParcelaTotal}"));
             }
 
-            // 3) Lançamentos "Fixo Mês" — repete todo mês até indicação de término (não modelada no MVP: repete indefinidamente).
-            foreach (var fixo in lancamentosCartao.Where(t => t.Repeticao == TipoRepeticao.FixoMes))
+            // 3) "Fixo Mês" entries — repeat every month until an end is indicated (not modeled in the MVP: repeats indefinitely).
+            foreach (var fixedEntry in cardEntries.Where(t => t.Repeticao == TipoRepeticao.FixoMes))
             {
-                var jaExisteNesteMes = existentes.Any(t => t.CartaoId == fixo.CartaoId && t.Descricao == fixo.Descricao);
-                if (jaExisteNesteMes || fixo.VencimentoFatura is null)
+                var alreadyExistsThisMonth = existingEntries.Any(t => t.CartaoId == fixedEntry.CartaoId && t.Descricao == fixedEntry.Descricao);
+                if (alreadyExistsThisMonth || fixedEntry.VencimentoFatura is null)
                 {
                     continue;
                 }
 
-                var mesDoFixo = MesAno.FromDate(fixo.VencimentoFatura.Value);
-                if (mesAno.Ano * 12 + mesAno.Mes <= mesDoFixo.Ano * 12 + mesDoFixo.Mes)
+                var fixedEntryMonth = MesAno.FromDate(fixedEntry.VencimentoFatura.Value);
+                if (monthYear.Ano * 12 + monthYear.Mes <= fixedEntryMonth.Ano * 12 + fixedEntryMonth.Mes)
                 {
                     continue;
                 }
 
-                var diff = mesAno.Ano * 12 + mesAno.Mes - (mesDoFixo.Ano * 12 + mesDoFixo.Mes);
-                lancamentosDoMes.Add(new ProjectedEntryDto(
-                    fixo.Descricao, fixo.Valor, fixo.VencimentoFatura.Value.AddMonths(diff), Projected: true, InstallmentLabel: null));
+                var diff = monthYear.Ano * 12 + monthYear.Mes - (fixedEntryMonth.Ano * 12 + fixedEntryMonth.Mes);
+                monthEntries.Add(new ProjectedEntryDto(
+                    fixedEntry.Descricao, fixedEntry.Valor, fixedEntry.VencimentoFatura.Value.AddMonths(diff), Projected: true, InstallmentLabel: null));
             }
 
-            // 4) Consolidação: soma da fatura -> único "Pagamento de cartão" na conta,
-            //    na data de vencimento, ajustada para o próximo dia útil (nunca a fatura crua na CC).
-            var totalFatura = lancamentosDoMes.Sum(l => Math.Abs(l.Amount));
-            var dataVencimentoCartao = lancamentosDoMes.Count > 0
-                ? BusinessDayHelper.ProximoDiaUtil(lancamentosDoMes.Max(l => l.EntryDate))
+            // 4) Consolidation: sum of the bill -> single "Pagamento de cartão" entry in the account,
+            //    on the due date, adjusted to the next business day (never the raw bill in the checking account).
+            var totalBill = monthEntries.Sum(l => Math.Abs(l.Amount));
+            var cardDueDate = monthEntries.Count > 0
+                ? BusinessDayHelper.NextBusinessDay(monthEntries.Max(l => l.EntryDate))
                 : (DateOnly?)null;
 
-            resultado.Add(new MonthlyProjectionDto(mesAno.Ano, mesAno.Mes, lancamentosDoMes, totalFatura, dataVencimentoCartao));
+            result.Add(new MonthlyProjectionDto(monthYear.Ano, monthYear.Mes, monthEntries, totalBill, cardDueDate));
         }
 
-        return resultado;
+        return result;
     }
 
-    private static string RemoverSufixoParcela(string descricao)
+    private static string RemoveInstallmentSuffix(string description)
     {
-        // Remove sufixo "N/M" da descrição-base (ex.: "Notebook 6/12" -> "Notebook").
-        var idx = descricao.LastIndexOf(' ');
-        if (idx < 0) return descricao;
+        // Removes the "N/M" suffix from the base description (e.g. "Notebook 6/12" -> "Notebook").
+        var idx = description.LastIndexOf(' ');
+        if (idx < 0) return description;
 
-        var possivelSufixo = descricao[(idx + 1)..];
-        return possivelSufixo.Contains('/') ? descricao[..idx] : descricao;
+        var possibleSuffix = description[(idx + 1)..];
+        return possibleSuffix.Contains('/') ? description[..idx] : description;
     }
 
-    private static int ParcelasJaGeradasAte(Transacao ultimaParcelaConhecida, MesAno mesAlvo)
+    private static int InstallmentsAlreadyGeneratedUntil(Transacao lastKnownInstallment, MesAno targetMonth)
     {
-        if (ultimaParcelaConhecida.VencimentoFatura is null) return 0;
+        if (lastKnownInstallment.VencimentoFatura is null) return 0;
 
-        var mesBase = MesAno.FromDate(ultimaParcelaConhecida.VencimentoFatura.Value);
-        var diff = (mesAlvo.Ano * 12 + mesAlvo.Mes) - (mesBase.Ano * 12 + mesBase.Mes);
+        var baseMonth = MesAno.FromDate(lastKnownInstallment.VencimentoFatura.Value);
+        var diff = (targetMonth.Ano * 12 + targetMonth.Mes) - (baseMonth.Ano * 12 + baseMonth.Mes);
         return Math.Max(diff, 0);
     }
 }

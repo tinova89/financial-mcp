@@ -5,9 +5,9 @@ using ValidationException = FinancialMcp.Application.Common.Exceptions.Validatio
 namespace FinancialMcp.Application.Common.Behaviors;
 
 /// <summary>
-/// 2º behavior do pipeline: executa todos os IValidator&lt;TRequest&gt; (FluentValidation)
-/// antes do handler. Lança ValidationException em caso de falha (ver CLAUDE.md > Padrão
-/// Mediator > Pipeline behaviors).
+/// 2nd pipeline behavior: runs all IValidator&lt;TRequest&gt; (FluentValidation)
+/// before the handler. Throws ValidationException on failure (see CLAUDE.md > Mediator
+/// Pattern > Pipeline behaviors).
 /// </summary>
 public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
     : IPipelineBehavior<TRequest, TResponse>

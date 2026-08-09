@@ -6,54 +6,54 @@ using MediatR;
 namespace FinancialMcp.Application.Transactions.CreateTransaction;
 
 /// <summary>
-/// Handler único para CreateTransactionCommand — orquestra a persistência da nova
-/// transação. Regras de cálculo (parcelamento, ciclo de fatura) não se aplicam aqui:
-/// cada linha já representa uma transação concreta (ver CLAUDE.md > Padrão Mediator).
+/// Single handler for CreateTransactionCommand — orchestrates persistence of the new
+/// transaction. Calculation rules (installments, billing cycle) don't apply here:
+/// each row already represents a concrete transaction (see CLAUDE.md > Mediator Pattern).
 /// </summary>
 public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
     : IRequestHandler<CreateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
     {
-        var transacao = new Transacao
+        var transaction = new Transacao
         {
-            Origem = Enum.Parse<OrigemTransacao>(request.Origem),
-            Tipo = Enum.Parse<TipoTransacao>(request.Tipo),
+            Origem = Enum.Parse<OrigemTransacao>(request.Source),
+            Tipo = Enum.Parse<TipoTransacao>(request.Type),
             Status = Enum.Parse<StatusTransacao>(request.Status),
-            Descricao = request.Descricao,
-            Valor = request.Valor,
-            CategoriaBruta = request.CategoriaBruta,
-            DataPrevista = request.DataPrevista,
-            DataEfetiva = request.DataEfetiva,
-            DataConciliado = request.DataConciliado,
-            VencimentoFatura = request.VencimentoFatura,
-            Repeticao = request.Repeticao is null ? TipoRepeticao.Nenhuma : Enum.Parse<TipoRepeticao>(request.Repeticao),
-            ParcelaAtual = request.ParcelaAtual,
-            ParcelaTotal = request.ParcelaTotal,
-            ContaId = request.ContaId,
-            CartaoId = request.CartaoId
+            Descricao = request.Description,
+            Valor = request.Amount,
+            CategoriaBruta = request.RawCategory,
+            DataPrevista = request.ExpectedDate,
+            DataEfetiva = request.ActualDate,
+            DataConciliado = request.ReconciledDate,
+            VencimentoFatura = request.InvoiceDueDate,
+            Repeticao = request.Recurrence is null ? TipoRepeticao.Nenhuma : Enum.Parse<TipoRepeticao>(request.Recurrence),
+            ParcelaAtual = request.CurrentInstallment,
+            ParcelaTotal = request.TotalInstallments,
+            ContaId = request.AccountId,
+            CartaoId = request.CardId
         };
 
-        db.Transacoes.Add(transacao);
+        db.Transactions.Add(transaction);
 
-        // SaveChangesAsync final é feito pelo TransactionBehavior (commit da transação de banco).
+        // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
         return new TransactionDto(
-            transacao.Id,
-            transacao.Origem.ToString(),
-            transacao.Tipo.ToString(),
-            transacao.Status.ToString(),
-            transacao.Descricao,
-            transacao.Valor,
-            transacao.CategoriaBruta,
-            transacao.DataPrevista,
-            transacao.DataEfetiva,
-            transacao.DataConciliado,
-            transacao.VencimentoFatura,
-            transacao.Repeticao.ToString(),
-            transacao.ParcelaAtual,
-            transacao.ParcelaTotal,
-            transacao.ContaId,
-            transacao.CartaoId);
+            transaction.Id,
+            transaction.Origem.ToString(),
+            transaction.Tipo.ToString(),
+            transaction.Status.ToString(),
+            transaction.Descricao,
+            transaction.Valor,
+            transaction.CategoriaBruta,
+            transaction.DataPrevista,
+            transaction.DataEfetiva,
+            transaction.DataConciliado,
+            transaction.VencimentoFatura,
+            transaction.Repeticao.ToString(),
+            transaction.ParcelaAtual,
+            transaction.ParcelaTotal,
+            transaction.ContaId,
+            transaction.CartaoId);
     }
 }

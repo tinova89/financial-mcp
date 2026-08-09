@@ -2,7 +2,7 @@ using MediatR;
 
 namespace FinancialMcp.Application.Categories.ListCategories;
 
-/// <summary>Lista categorias-mãe e subcategorias em uso. Corresponde à tool MCP `list_categories`.</summary>
-public sealed record ListCategoriesQuery : IRequest<IReadOnlyList<CategoriaDto>>;
+/// <summary>Lists parent categories and subcategories in use. Corresponds to the MCP tool `list_categories`.</summary>
+public sealed record ListCategoriesQuery : IRequest<IReadOnlyList<CategoryDto>>;
 
-public sealed record CategoriaDto(string CategoriaMae, IReadOnlyList<string> Subcategorias);
+public sealed record CategoryDto(string ParentCategory, IReadOnlyList<string> Subcategories);
