@@ -21,11 +21,11 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
             throw new NotFoundException(nameof(Account), request.AccountId);
         }
 
-        if (request.Name is not null) account.Name = request.Name;
-        if (request.Bank is not null) account.Bank = request.Bank;
+        if (request.Name is not null) account.DisplayName = request.Name;
+        if (request.Bank is not null) account.BankCode = request.Bank;
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
-        return new AccountDto(account.Id, account.Name, account.Bank, account.Cards.Select(c => c.Id).ToList());
+        return new AccountDto(account.Id, account.DisplayName, account.BankCode, account.Cards.Select(c => c.Id).ToList());
     }
 }

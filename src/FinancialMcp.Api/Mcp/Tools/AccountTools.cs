@@ -1,4 +1,4 @@
-using System.ComponentModel;
+using FinancialApp.Model;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Accounts.DeleteAccount;
 using FinancialMcp.Application.Accounts.GetAccount;
@@ -6,6 +6,7 @@ using FinancialMcp.Application.Accounts.ListAccounts;
 using FinancialMcp.Application.Accounts.UpdateAccount;
 using MediatR;
 using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace FinancialMcp.Api.Mcp.Tools;
 
@@ -27,8 +28,8 @@ public sealed class AccountTools(IMediator mediator)
 
     [McpServerTool(Name = "create_account"), Description(
         "Registers a new checking account (bank), used to link transactions and cards.")]
-    public Task<AccountDto> CreateAccountAsync(string name, string bank, CancellationToken cancellationToken = default) =>
-        mediator.Send(new CreateAccountCommand(name, bank), cancellationToken);
+    public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string kind, string baseCurrency, CancellationToken cancellationToken = default) =>
+        mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount, Enum.Parse<FinancialAccountKind>(kind)), cancellationToken);
 
     [McpServerTool(Name = "update_account"), Description("Changes fields (name, bank) of an existing checking account.")]
     public Task<AccountDto> UpdateAccountAsync(

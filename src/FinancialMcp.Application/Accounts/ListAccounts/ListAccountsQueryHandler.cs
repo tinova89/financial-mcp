@@ -12,11 +12,11 @@ public sealed class ListAccountsQueryHandler(IApplicationDbContext db)
     {
         var accounts = await db.Accounts.AsNoTracking()
             .Include(a => a.Cards)
-            .OrderBy(a => a.Name)
+            .OrderBy(a => a.DisplayName)
             .ToListAsync(cancellationToken);
 
         return accounts
-            .Select(a => new AccountDto(a.Id, a.Name, a.Bank, a.Cards.Select(c => c.Id).ToList()))
+            .Select(a => new AccountDto(a.Id, a.DisplayName, a.BankCode, a.Cards.Select(c => c.Id).ToList()))
             .ToList();
     }
 }

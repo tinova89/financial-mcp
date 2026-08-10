@@ -10,10 +10,15 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
     {
         builder.ToTable("accounts");
         builder.HasKey(c => c.Id);
-        builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
-        builder.Property(c => c.Bank).HasMaxLength(200).IsRequired();
+        builder.Property(c => c.DisplayName).HasMaxLength(200).IsRequired();
+        builder.Property(c => c.BankCode).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.Kind).HasConversion<int>();
+        builder.Property(e => e.InitialAmount).HasPrecision(18, 2);
+        builder.Property(e => e.BaseCurrencyCode).IsRequired();
         builder.Property(c => c.CreatedAt).HasColumnType("timestamptz");
         builder.Property(c => c.UpdatedAt).HasColumnType("timestamptz");
         builder.Property(c => c.DeletedAt).HasColumnType("timestamptz");
+
+        builder.HasIndex(e => e.BankCode);
     }
 }

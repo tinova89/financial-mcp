@@ -1,3 +1,4 @@
+using FinancialApp.Model;
 using FinancialMcp.Application.Common.Behaviors;
 using MediatR;
 
@@ -8,5 +9,9 @@ namespace FinancialMcp.Application.Accounts.CreateAccount;
 /// Corresponds to the MCP tool `create_account` (see CLAUDE.md > MCP).
 /// </summary>
 public sealed record CreateAccountCommand(
-    string Name,
-    string Bank) : IRequest<AccountDto>, ITransactionalRequest;
+    string BankCode,
+    string DisplayName,
+    string BaseCurrencyCode,
+    decimal InitialAmount,
+    FinancialAccountKind Kind
+    ) : IRequest<AccountDto>, ITransactionalRequest;

@@ -12,14 +12,16 @@ public sealed class CreateAccountCommandHandler(IApplicationDbContext db)
     {
         var account = new Account
         {
-            Name = request.Name,
-            Bank = request.Bank
+            DisplayName = request.DisplayName,
+            BankCode = request.BankCode,
+            BaseCurrencyCode = request.BaseCurrencyCode,
+            InitialAmount = request.InitialAmount,
         };
 
         db.Accounts.Add(account);
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
-        return new AccountDto(account.Id, account.Name, account.Bank, []);
+        return new AccountDto(account.Id, account.DisplayName, account.BankCode, []);
     }
 }

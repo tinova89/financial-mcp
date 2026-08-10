@@ -6,7 +6,7 @@ public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAcco
 {
     public CreateAccountCommandValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Bank).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.BankCode).NotEmpty().MaximumLength(200);
     }
 }
