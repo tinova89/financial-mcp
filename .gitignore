@@ -16,3 +16,4 @@ TestResults/
 **/appsettings.*.local.json
 *.pfx
 /CLAUDE_OLD
+/src/FinancialMcp.Api/appsettings.Local.json

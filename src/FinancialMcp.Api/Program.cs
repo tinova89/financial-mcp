@@ -3,6 +3,7 @@ using FinancialMcp.Api.Common;
 using FinancialMcp.Application;
 using FinancialMcp.Infrastructure;
 using FinancialMcp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,19 @@ app.MapDefaultEndpoints(); // "/health", "/alive" — see ServiceDefaults.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+
+// Local machine only: set Hosting:ApplyDatabaseMigrationsOnStartup in appsettings.Local.json.
+if (app.Environment.IsDevelopment()
+    && app.Configuration.GetValue("Hosting:ApplyDatabaseMigrationsOnStartup", false))
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+    //if (app.Configuration.GetValue("Hosting:ApplySampleFinancialDataAfterMigrations", false))
+    //{
+    //    await FinancialSampleDataSeeder.EnsureInitialSampleDataAsync(db);
+    //}
 }
 
 //app.UseAuthentication();
