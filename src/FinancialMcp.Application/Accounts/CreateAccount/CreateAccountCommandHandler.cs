@@ -16,12 +16,15 @@ public sealed class CreateAccountCommandHandler(IApplicationDbContext db)
             BankCode = request.BankCode,
             BaseCurrencyCode = request.BaseCurrencyCode,
             InitialAmount = request.InitialAmount,
+            Kind = request.Kind,
         };
 
         db.Accounts.Add(account);
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
-        return new AccountDto(account.Id, account.DisplayName, account.BankCode, []);
+        return new AccountDto(
+            account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
+            account.Kind.ToString(), account.BaseCurrencyCode, []);
     }
 }

@@ -16,7 +16,9 @@ public sealed class ListAccountsQueryHandler(IApplicationDbContext db)
             .ToListAsync(cancellationToken);
 
         return accounts
-            .Select(a => new AccountDto(a.Id, a.DisplayName, a.BankCode, a.Cards.Select(c => c.Id).ToList()))
+            .Select(a => new AccountDto(
+                a.Id, a.DisplayName, a.BankCode, a.InitialAmount,
+                a.Kind.ToString(), a.BaseCurrencyCode, a.Cards.Select(c => c.Id).ToList()))
             .ToList();
     }
 }

@@ -1,3 +1,4 @@
+using FinancialApp.Model;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Common.Behaviors;
 using MediatR;
@@ -10,5 +11,8 @@ namespace FinancialMcp.Application.Accounts.UpdateAccount;
 /// </summary>
 public sealed record UpdateAccountCommand(
     Guid AccountId,
-    string? Name = null,
-    string? Bank = null) : IRequest<AccountDto>, ITransactionalRequest;
+    string? DisplayName = null,
+    string? BankCode = null,
+    decimal? InitialAmount = null,
+    FinancialAccountKind? Kind = null,
+    string? BaseCurrencyCode = null) : IRequest<AccountDto>, ITransactionalRequest;

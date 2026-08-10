@@ -1,3 +1,4 @@
+using FinancialApp.Model;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Common.Exceptions;
 using FinancialMcp.Application.Common.Interfaces;
@@ -14,18 +15,17 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
     {
         var account = await db.Accounts
             .Include(a => a.Cards)
-            .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken);
-
-        if (account is null)
-        {
-            throw new NotFoundException(nameof(Account), request.AccountId);
-        }
-
-        if (request.Name is not null) account.DisplayName = request.Name;
-        if (request.Bank is not null) account.BankCode = request.Bank;
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken) ?? throw new NotFoundException(nameof(Account), request.AccountId);
+        if (request.DisplayName is not null) account.DisplayName = request.DisplayName;
+        if (request.BankCode is not null) account.BankCode = request.BankCode;
+        if (request.InitialAmount is not null) account.InitialAmount = request.InitialAmount.Value;
+        if (request.Kind is not null) account.Kind = (FinancialAccountKind)request.Kind;
+        if (request.BaseCurrencyCode is not null) account.BaseCurrencyCode = request.BaseCurrencyCode;
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
-        return new AccountDto(account.Id, account.DisplayName, account.BankCode, account.Cards.Select(c => c.Id).ToList());
+        return new AccountDto(
+            account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
+            account.Kind.ToString(), account.BaseCurrencyCode, account.Cards.Select(c => c.Id).ToList());
     }
 }

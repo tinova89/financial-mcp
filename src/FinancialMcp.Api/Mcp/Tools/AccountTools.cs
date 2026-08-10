@@ -18,27 +18,147 @@ namespace FinancialMcp.Api.Mcp.Tools;
 [McpServerToolType]
 public sealed class AccountTools(IMediator mediator)
 {
-    [McpServerTool(Name = "list_accounts"), Description("Lists all registered checking accounts.")]
+    [McpServerTool(Name = "create_account"), Description(
+        """
+        Registers a new financial account (checking, credit, investment, or wallet) so that
+        transactions and cards can be linked to it.
+
+        ## Parameters
+        - **bankCode** — COMPE bank code identifying the institution. Supported values:
+          `341` (Itaú), `260` (Nubank), `077` (Inter), `307` (Wallet). An unrecognized
+          code is rejected by validation before persisting.
+        - **displayName** — Friendly name shown to the user (e.g. `"Nubank Corrente"`).
+          Required, up to 200 characters.
+        - **initialAmount** — Opening balance for the account, expressed in `baseCurrency`.
+        - **kind** — Account classification, one of: `Credit`, `Debit`, `Investment`, `Wallet`.
+          Drives reporting and business rules (e.g. credit vs. debit vs. investment behavior).
+        - **baseCurrency** — ISO currency code for the account's balance. Supported values:
+          `BRL`, `USD`, `BTC`. An unrecognized code is rejected by validation before persisting.
+
+        ## Behavior
+        - The account is created with no linked cards (`cardIds` starts empty); link cards
+          afterwards via the card-management tools.
+        - This is a non-destructive write; no confirmation is required.
+
+        ## Example
+        ```json
+        { "bankCode": "260", "displayName": "Nubank Corrente", "initialAmount": 1500.00, "kind": "Debit", "baseCurrency": "BRL" }
+        ```
+
+        ## Returns
+        The created `AccountDto` (id, displayName, bankCode, cardIds).
+        """)]
+    public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string kind, string baseCurrency, CancellationToken cancellationToken = default) =>
+        mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount, Enum.Parse<FinancialAccountKind>(kind)), cancellationToken);
+    
+    [McpServerTool(Name = "list_accounts"), Description(
+        """
+        Lists every registered financial account (checking, credit, investment, and wallet).
+
+        ## Parameters
+        None — this tool takes no filters and always returns the full set of accounts.
+
+        ## Behavior
+        - Read-only; ordered by `displayName`.
+        - Each item includes the `cardIds` currently linked to that account, so a card's
+          owning account can be cross-referenced without a separate call.
+        - Soft-deleted accounts are excluded automatically (global query filter).
+
+        ## Returns
+        A list of `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        """)]
     public Task<IReadOnlyList<AccountDto>> ListAccountsAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListAccountsQuery(), cancellationToken);
 
-    [McpServerTool(Name = "get_account"), Description("Detail of a specific checking account.")]
+    [McpServerTool(Name = "get_account"), Description(
+        """
+        Fetches the full detail of a single financial account by id.
+
+        ## Parameters
+        - **accountId** — `Guid` of the account to look up. Required.
+
+        ## Behavior
+        - Read-only.
+        - Throws a not-found error if `accountId` doesn't match a registered (non-deleted) account.
+        - Includes the `cardIds` currently linked to this account.
+
+        ## Example
+        ```json
+        { "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+        ```
+
+        ## Returns
+        The matching `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        """)]
     public Task<AccountDto> GetAccountAsync(Guid accountId, CancellationToken cancellationToken = default) =>
         mediator.Send(new GetAccountQuery(accountId), cancellationToken);
 
-    [McpServerTool(Name = "create_account"), Description(
-        "Registers a new checking account (bank), used to link transactions and cards.")]
-    public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string kind, string baseCurrency, CancellationToken cancellationToken = default) =>
-        mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount, Enum.Parse<FinancialAccountKind>(kind)), cancellationToken);
+    [McpServerTool(Name = "update_account"), Description(
+        """
+        Changes one or more fields of an existing account. This is a partial patch: only the
+        parameters explicitly provided are changed — any parameter left as `null` keeps its
+        current stored value.
 
-    [McpServerTool(Name = "update_account"), Description("Changes fields (name, bank) of an existing checking account.")]
+        ## Parameters
+        - **accountId** — `Guid` of the account to update. Required.
+        - **displayName** — New friendly name, up to 200 characters. Optional.
+        - **bankCode** — New COMPE bank code. Must be one of the supported codes: `341` (Itaú),
+          `260` (Nubank), `077` (Inter), `307` (Wallet). Optional; rejected by validation if
+          unrecognized.
+        - **initialAmount** — New opening balance, expressed in the account's `baseCurrencyCode`.
+          Optional.
+        - **kind** — New account classification: `Credit`, `Debit`, `Investment`, or `Wallet`.
+          Optional; rejected by validation if not one of these values.
+        - **baseCurrencyCode** — New ISO currency code. Supported values: `BRL`, `USD`, `BTC`.
+          Optional; rejected by validation if unrecognized.
+
+        ## Behavior
+        - Throws a not-found error if `accountId` doesn't match a registered account.
+        - Non-destructive; no confirmation is required.
+        - Existing linked cards (`cardIds`) are unaffected by this call.
+
+        ## Example
+        ```json
+        { "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "displayName": "Nubank Corrente 2", "initialAmount": 2000.00 }
+        ```
+
+        ## Returns
+        The updated `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        """)]
     public Task<AccountDto> UpdateAccountAsync(
-        Guid accountId, string? name = null, string? bank = null, CancellationToken cancellationToken = default) =>
-        mediator.Send(new UpdateAccountCommand(accountId, name, bank), cancellationToken);
+        Guid accountId, string? displayName = null, string? bankCode = null, decimal? initialAmount = null,
+        string? kind = null, string? baseCurrencyCode = null, CancellationToken cancellationToken = default) =>
+        mediator.Send(new UpdateAccountCommand(
+            accountId, displayName, bankCode, initialAmount,
+            kind is null ? null : Enum.Parse<FinancialAccountKind>(kind), baseCurrencyCode), cancellationToken);
 
     [McpServerTool(Name = "delete_account"), Description(
-        "Removes (soft delete) a checking account. DESTRUCTIVE OPERATION: requires confirm = true. " +
-        "Always confirm explicitly with the user before calling this tool with confirm = true.")]
+        """
+        Removes an account via soft delete (sets `IsDeleted`/`DeletedAt`; the row is never
+        physically removed and disappears from all default queries afterwards).
+
+        ## Parameters
+        - **accountId** — `Guid` of the account to remove. Required.
+        - **confirm** — Must be explicitly `true` for the operation to proceed. Required.
+
+        ## DESTRUCTIVE OPERATION
+        Always confirm explicitly with the user before calling this tool with `confirm = true`.
+        Calling it with `confirm = false` (or omitted) is rejected by validation before any
+        data is touched.
+
+        ## Behavior
+        - Throws a not-found error if `accountId` doesn't match a registered account.
+        - Does not cascade to linked transactions or cards — they keep their `accountId`/`cardId`
+          references; consider that before deleting an account still in active use.
+
+        ## Example
+        ```json
+        { "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "confirm": true }
+        ```
+
+        ## Returns
+        A confirmation message string ("Conta removida (soft delete).").
+        """)]
     public async Task<string> DeleteAccountAsync(Guid accountId, bool confirm, CancellationToken cancellationToken = default)
     {
         await mediator.Send(new DeleteAccountCommand(accountId, confirm), cancellationToken);

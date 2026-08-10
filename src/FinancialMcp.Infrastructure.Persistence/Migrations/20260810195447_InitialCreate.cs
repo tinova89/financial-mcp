@@ -16,8 +16,11 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Bank = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    BankCode = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    InitialAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Kind = table.Column<int>(type: "integer", nullable: false),
+                    BaseCurrencyCode = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -133,6 +136,11 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_accounts_BankCode",
+                table: "accounts",
+                column: "BankCode");
 
             migrationBuilder.CreateIndex(
                 name: "ux_budget_goals_category_year_month",

@@ -37,7 +37,7 @@ Sem esse segredo, `AddJwtBearer` sobe com uma chave vazia (apenas para não queb
 ## Migration inicial do EF Core
 
 ```bash
-dotnet ef migrations add InitialCreate --project src/FinancialMcp.Infrastructure --startup-project src/FinancialMcp.Api
+dotnet ef migrations add InitialCreate --project src/FinancialMcp.Infrastructure.Persistence --startup-project src/FinancialMcp.Api
 dotnet ef database update --project src/FinancialMcp.Infrastructure --startup-project src/FinancialMcp.Api
 ```
 

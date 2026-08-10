@@ -21,6 +21,8 @@ public sealed class GetAccountQueryHandler(IApplicationDbContext db)
             throw new NotFoundException(nameof(Account), request.AccountId);
         }
 
-        return new AccountDto(account.Id, account.DisplayName, account.BankCode, account.Cards.Select(c => c.Id).ToList());
+        return new AccountDto(
+            account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
+            account.Kind.ToString(), account.BaseCurrencyCode, account.Cards.Select(c => c.Id).ToList());
     }
 }
