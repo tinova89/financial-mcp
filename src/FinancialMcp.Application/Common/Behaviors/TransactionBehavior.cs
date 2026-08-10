@@ -1,7 +1,6 @@
 using FinancialMcp.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace FinancialMcp.Application.Common.Behaviors;
@@ -32,45 +31,42 @@ public sealed class TransactionBehavior<TRequest, TResponse>(
             return await next();
         }
 
-        var requestName = typeof(TRequest).Name;
-
         if (dbContext.Database.CurrentTransaction is not null)
         {
             // A transaction is already in progress (e.g. nested call) — don't open another one.
             return await next();
         }
 
-        IDbContextTransaction? transaction = null;
+        var requestName = typeof(TRequest).Name;
 
-        try
+        // Npgsql's retrying execution strategy forbids user-managed transactions started
+        // outside of it (it needs to retry the whole begin/commit unit on a transient
+        // failure). Run the transaction through the strategy instead of BeginTransactionAsync
+        // directly — see https://learn.microsoft.com/ef/core/miscellaneous/connection-resiliency.
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
         {
-            transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var response = await next();
+            try
+            {
+                var response = await next();
 
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
 
-            logger.LogDebug("Transação de banco commitada para {RequestName}", requestName);
+                logger.LogDebug("Transação de banco commitada para {RequestName}", requestName);
 
-            return response;
-        }
-        catch
-        {
-            if (transaction is not null)
+                return response;
+            }
+            catch
             {
                 await transaction.RollbackAsync(cancellationToken);
                 logger.LogWarning("Transação de banco revertida (rollback) para {RequestName}", requestName);
-            }
 
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null)
-            {
-                await transaction.DisposeAsync();
+                throw;
             }
-        }
+        });
     }
 }
