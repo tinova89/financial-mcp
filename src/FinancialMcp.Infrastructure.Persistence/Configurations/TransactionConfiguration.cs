@@ -43,7 +43,7 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(t => t.CreditCard)
-            .WithMany(c => c.CardTransactions)
+            .WithMany()
             .HasForeignKey(t => t.CardId)
             .OnDelete(DeleteBehavior.Restrict);
 

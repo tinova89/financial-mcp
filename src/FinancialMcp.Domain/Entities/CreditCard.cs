@@ -14,6 +14,4 @@ public class CreditCard : Account
 
     public Guid PaymentAccountId { get; set; }          // Account debited when the bill is paid
     public Account PaymentAccount { get; set; } = default!;
-
-    public ICollection<Transaction> CardTransactions { get; set; } = new List<Transaction>();
 }

@@ -275,7 +275,7 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("FinancialMcp.Domain.Entities.CreditCard", "CreditCard")
-                        .WithMany("CardTransactions")
+                        .WithMany()
                         .HasForeignKey("CardId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -300,11 +300,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.Navigation("CreditCards");
 
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("FinancialMcp.Domain.Entities.CreditCard", b =>
-                {
-                    b.Navigation("CardTransactions");
                 });
 #pragma warning restore 612, 618
         }
