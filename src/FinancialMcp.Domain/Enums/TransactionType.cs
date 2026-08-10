@@ -1,10 +1,13 @@
 namespace FinancialMcp.Domain.Enums;
 
-/// <summary>"Tipo" column from the statement. See CLAUDE.md > Business Rules > Budget goals.</summary>
+/// <summary>
+/// Represents a financial transaction category.
+/// </summary>
+/// <remarks>Payment values are excluded from budget goal calculations to avoid double-counting.</remarks>
 public enum TransactionType
 {
     Expense,
     Income,
     Transfer,
-    Payment // "Pagamento de cartão" — never enters the budget goal calculation (avoids double-counting).
+    Payment // "Card payment" — never enters the budget goal calculation (avoids double-counting).
 }

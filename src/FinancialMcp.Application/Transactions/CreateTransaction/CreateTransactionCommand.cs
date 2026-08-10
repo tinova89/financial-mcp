@@ -1,4 +1,5 @@
 using FinancialMcp.Application.Common.Behaviors;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Transactions.CreateTransaction;
@@ -8,9 +9,9 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// fields for each statement type. Corresponds to the MCP tool `create_transaction` (see CLAUDE.md > MCP).
 /// </summary>
 public sealed record CreateTransactionCommand(
-    string Source,             // "ContaCorrente" | "CartaoCredito"
-    string Type,                // "Despesa" | "Receita" | "Transferencia" | "Pagamento"
-    string Status,
+    TransactionSource Source,
+    TransactionType Type,
+    TransactionStatus Status,
     string Description,
     decimal Amount,
     string RawCategory,        // "Categoria-mãe/Subcategoria"
@@ -18,7 +19,7 @@ public sealed record CreateTransactionCommand(
     DateOnly? ActualDate,
     DateOnly? ReconciledDate,
     DateOnly? InvoiceDueDate,
-    string? Recurrence,
+    RecurrenceType Recurrence,
     int? CurrentInstallment,
     int? TotalInstallments,
     Guid? AccountId,

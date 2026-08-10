@@ -20,17 +20,17 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
         if (request.Source is not null)
         {
-            query = query.Where(t => t.Source == Enum.Parse<TransactionSource>(request.Source));
+            query = query.Where(t => t.Source == request.Source);
         }
 
         if (request.Type is not null)
         {
-            query = query.Where(t => t.Type == Enum.Parse<TransactionType>(request.Type));
+            query = query.Where(t => t.Type == request.Type);
         }
 
         if (request.Status is not null)
         {
-            query = query.Where(t => t.Status == Enum.Parse<TransactionStatus>(request.Status));
+            query = query.Where(t => t.Status == request.Status);
         }
 
         if (request.AccountId is not null)

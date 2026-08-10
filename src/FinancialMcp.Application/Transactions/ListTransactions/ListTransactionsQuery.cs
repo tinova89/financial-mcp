@@ -1,4 +1,5 @@
 using FinancialMcp.Application.Transactions.CreateTransaction;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Transactions.ListTransactions;
@@ -8,9 +9,9 @@ namespace FinancialMcp.Application.Transactions.ListTransactions;
 /// `list_transactions` (see CLAUDE.md > MCP). All filters are optional.
 /// </summary>
 public sealed record ListTransactionsQuery(
-    string? Source = null,
-    string? Type = null,
-    string? Status = null,
+    TransactionSource? Source = null,
+    TransactionType? Type = null,
+    TransactionStatus? Status = null,
     string? ParentCategory = null,
     string? Subcategory = null,
     Guid? AccountId = null,

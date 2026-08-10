@@ -33,7 +33,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
     };
 
     public IReadOnlyList<Transaction> Parse(
-        string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings)
+        string csvContent, TransactionSource source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -73,11 +73,11 @@ public sealed class StatementCsvParser : IStatementCsvParser
         return transactions;
     }
 
-    private static Transaction MapRow(CsvReader csv, string source, Guid? accountId, Guid? cardId)
+    private static Transaction MapRow(CsvReader csv, TransactionSource source, Guid? accountId, Guid? cardId)
     {
         // `source` indicates which statement type is being imported — it's an Application-controlled
         // parameter (already English by the time it gets here), not raw CSV text, so it's parsed directly.
-        var sourceEnum = Enum.Parse<TransactionSource>(source);
+        var sourceEnum = source;
 
         var rawAmount = csv.GetField("Valor") ?? throw new FormatException("Campo 'Valor' ausente.");
         var amount = decimal.Parse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture);

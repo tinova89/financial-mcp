@@ -17,9 +17,9 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
     {
         var transaction = new Transaction
         {
-            Source = Enum.Parse<TransactionSource>(request.Source),
-            Type = Enum.Parse<TransactionType>(request.Type),
-            Status = Enum.Parse<TransactionStatus>(request.Status),
+            Source = request.Source,
+            Type = request.Type,
+            Status = request.Status,
             Description = request.Description,
             Amount = request.Amount,
             RawCategory = request.RawCategory,
@@ -27,7 +27,7 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
             ActualDate = request.ActualDate,
             ReconciledDate = request.ReconciledDate,
             InvoiceDueDate = request.InvoiceDueDate,
-            Recurrence = request.Recurrence is null ? RecurrenceType.None : Enum.Parse<RecurrenceType>(request.Recurrence),
+            Recurrence = request.Recurrence,
             CurrentInstallment = request.CurrentInstallment,
             TotalInstallments = request.TotalInstallments,
             AccountId = request.AccountId,

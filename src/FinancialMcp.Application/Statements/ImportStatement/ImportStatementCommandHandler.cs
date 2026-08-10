@@ -3,6 +3,15 @@ using MediatR;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
+/// <summary>
+/// Handles ImportStatementCommand requests by parsing CSV content into transactions and adding them to the application
+/// database.
+/// </summary>
+/// <remarks>Parsed transactions are added to the DbContext but not saved here; TransactionBehavior performs the
+/// final SaveChangesAsync. The handler produces an ImportStatementResultDto with lines processed, lines imported, and
+/// any warnings.</remarks>
+/// <param name="db">Application database context used to add parsed transactions.</param>
+/// <param name="parser">Parser that converts CSV content and source information into transaction entities and collects parsing warnings.</param>
 public sealed class ImportStatementCommandHandler(IApplicationDbContext db, IStatementCsvParser parser)
     : IRequestHandler<ImportStatementCommand, ImportStatementResultDto>
 {

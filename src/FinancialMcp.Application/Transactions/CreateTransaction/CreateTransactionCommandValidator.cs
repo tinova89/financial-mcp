@@ -1,3 +1,4 @@
+using FinancialMcp.Domain.Enums;
 using FluentValidation;
 
 namespace FinancialMcp.Application.Transactions.CreateTransaction;
@@ -9,17 +10,8 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// </summary>
 public sealed class CreateTransactionCommandValidator : AbstractValidator<CreateTransactionCommand>
 {
-    private static readonly string[] ValidSources = ["CheckingAccount", "CreditCard"];
-    private static readonly string[] ValidTypes = ["Expense", "Income", "Transfer", "Payment"];
-
     public CreateTransactionCommandValidator()
     {
-        RuleFor(x => x.Source).Must(o => ValidSources.Contains(o))
-            .WithMessage($"Origem deve ser uma de: {string.Join(", ", ValidSources)}.");
-
-        RuleFor(x => x.Type).Must(t => ValidTypes.Contains(t))
-            .WithMessage($"Tipo deve ser um de: {string.Join(", ", ValidTypes)}.");
-
         RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
 
         RuleFor(x => x.Amount).NotEqual(0m);
@@ -29,7 +21,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
         // Credit card specific rules.
-        When(x => x.Source == "CreditCard", () =>
+        When(x => x.Source == TransactionSource.CreditCard, () =>
         {
             RuleFor(x => x.CardId).NotNull()
                 .WithMessage("CartaoId é obrigatório para transações de Cartão de Crédito.");
@@ -37,7 +29,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
             RuleFor(x => x.InvoiceDueDate).NotNull()
                 .WithMessage("VencimentoFatura é obrigatório para transações de Cartão de Crédito.");
 
-            When(x => x.Recurrence == "Installment", () =>
+            When(x => x.Recurrence == RecurrenceType.Installment, () =>
             {
                 RuleFor(x => x.CurrentInstallment).NotNull().GreaterThan(0);
                 RuleFor(x => x.TotalInstallments).NotNull()
@@ -47,7 +39,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
         });
 
         // Checking account specific rules.
-        When(x => x.Source == "CheckingAccount", () =>
+        When(x => x.Source == TransactionSource.CheckingAccount, () =>
         {
             RuleFor(x => x.AccountId).NotNull()
                 .WithMessage("ContaId é obrigatório para transações de Conta Corrente.");

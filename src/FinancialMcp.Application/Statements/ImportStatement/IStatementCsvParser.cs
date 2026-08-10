@@ -1,4 +1,5 @@
 using FinancialMcp.Domain.Entities;
+using FinancialMcp.Domain.Enums;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
@@ -9,5 +10,5 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 /// </summary>
 public interface IStatementCsvParser
 {
-    IReadOnlyList<Transaction> Parse(string csvContent, string source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings);
+    IReadOnlyList<Transaction> Parse(string csvContent, TransactionSource source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings);
 }

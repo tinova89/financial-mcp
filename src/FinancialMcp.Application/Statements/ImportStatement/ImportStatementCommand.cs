@@ -1,4 +1,5 @@
 using FinancialMcp.Application.Common.Behaviors;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
@@ -9,11 +10,19 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 /// dot-decimal (see CLAUDE.md > MCP and Code Conventions).
 /// </summary>
 public sealed record ImportStatementCommand(
-    string Source,          // "ContaCorrente" | "CartaoCredito"
+    TransactionSource Source,
     Guid? AccountId,
     Guid? CardId,
     string CsvContent) : IRequest<ImportStatementResultDto>, ITransactionalRequest;
 
+/// <summary>
+/// Represents the result of importing statements, including the number of lines processed, the number successfully
+/// imported, and any warnings.
+/// </summary>
+/// <remarks>Counts are non-negative; LinesImported is less than or equal to LinesProcessed.</remarks>
+/// <param name="LinesProcessed">Total number of lines examined during the import operation.</param>
+/// <param name="LinesImported">Number of lines successfully imported.</param>
+/// <param name="Warnings">Read-only list of warnings produced during the import.</param>
 public sealed record ImportStatementResultDto(
     int LinesProcessed,
     int LinesImported,

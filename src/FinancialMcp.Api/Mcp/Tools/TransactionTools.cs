@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Transactions;
 using FinancialMcp.Application.Transactions.CreateTransaction;
 using FinancialMcp.Application.Transactions.DeleteTransaction;
 using FinancialMcp.Application.Transactions.GetTransaction;
 using FinancialMcp.Application.Transactions.ListTransactions;
 using FinancialMcp.Application.Transactions.ReconcileTransaction;
 using FinancialMcp.Application.Transactions.UpdateTransaction;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -22,7 +24,7 @@ public sealed class TransactionTools(IMediator mediator)
         "Lists checking account and/or credit card transactions with filters " +
         "(type, status, category/subcategory, account, card, period, reference month).")]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
-        string? source = null, string? type = null, string? status = null,
+        TransactionSource? source = null, TransactionType? type = null, Domain.Enums.TransactionStatus? status = null,
         string? parentCategory = null, string? subcategory = null,
         Guid? accountId = null, Guid? cardId = null,
         DateOnly? periodStart = null, DateOnly? periodEnd = null,
