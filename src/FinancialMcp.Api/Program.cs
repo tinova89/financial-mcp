@@ -22,7 +22,7 @@ builder.AddNpgsqlDbContext<ApplicationDbContext>("financialmcp-db");
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 //builder.Services.AddInfrastructureAuth(builder.Configuration);
-builder.Services.AddInfrastructurePersistence("financialmcp-db", builder.Configuration);
+builder.Services.AddInfrastructurePersistence();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();

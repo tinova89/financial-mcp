@@ -1,32 +1,29 @@
 using FinancialMcp.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FinancialMcp.Infrastructure.Persistence;
 
 /// <summary>
-/// Registration of EF Core/Postgres persistence services. Called from
-/// FinancialMcp.Api (which also calls builder.AddNpgsqlDbContext via Aspire
-/// integration to get the connection string via service discovery).
+/// Registration of EF Core/Postgres persistence services that don't depend on the
+/// Aspire host. FinancialMcp.Api's Program.cs is the single place that registers
+/// ApplicationDbContext itself, via builder.AddNpgsqlDbContext (connection string,
+/// resiliency, and telemetry come from Aspire service discovery) — registering it
+/// again here via AddDbContext would create a conflicting second set of
+/// DbContextOptions/IDbContextOptionsConfiguration descriptors for the same context.
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructurePersistence(this IServiceCollection services, string connectionStringName, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructurePersistence(this IServiceCollection services)
     {
-        // The real connection string is injected by Aspire via AddNpgsqlDbContext
-        // in the Api's Program.cs (ConnectionStrings:financialmcp-db). Here we register
-        // only the provider and the options that don't depend on the Aspire host.
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddScoped<IApplicationDbContext>(provider =>
         {
-            var connectionString = configuration.GetConnectionString(connectionStringName);
-            if (!string.IsNullOrWhiteSpace(connectionString))
-            {
-                options.UseNpgsql(connectionString);
-            }
+            return provider.GetRequiredService<ApplicationDbContext>();
         });
 
-        services.AddScoped<IApplicationDbContext>(provider =>
+        // TransactionBehavior (Application layer) depends on the base DbContext type to
+        // stay decoupled from Infrastructure — map it to the concrete ApplicationDbContext here.
+        services.AddScoped<DbContext>(provider =>
         {
             return provider.GetRequiredService<ApplicationDbContext>();
         });
