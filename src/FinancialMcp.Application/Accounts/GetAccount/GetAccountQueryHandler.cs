@@ -13,8 +13,8 @@ public sealed class GetAccountQueryHandler(IApplicationDbContext db)
     public async Task<AccountDto> Handle(GetAccountQuery request, CancellationToken cancellationToken)
     {
         var account = await db.Accounts.AsNoTracking()
-            .Include(a => a.Cards)
-            .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken);
+            .Include(a => a.CreditCards)
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId && !(a is CreditCard), cancellationToken);
 
         if (account is null)
         {
@@ -23,6 +23,6 @@ public sealed class GetAccountQueryHandler(IApplicationDbContext db)
 
         return new AccountDto(
             account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
-            account.Kind.ToString(), account.BaseCurrencyCode, account.Cards.Select(c => c.Id).ToList());
+            account.Kind.ToString(), account.BaseCurrencyCode, account.CreditCards.Select(c => c.Id).ToList());
     }
 }

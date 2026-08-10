@@ -11,7 +11,9 @@ using System.ComponentModel;
 namespace FinancialMcp.Api.Mcp.Tools;
 
 /// <summary>
-/// MCP tools for checking accounts (bank accounts that Transactions and Cards link to).
+/// MCP tools for financial accounts (bank accounts that Transactions and CreditCards link to).
+/// Credit cards are a distinct MCP-managed type (see CreditCardTools) even though they share
+/// the "accounts" table via EF Core TPH — these tools only ever operate on non-CreditCard accounts.
 /// Each tool is "thin": it only builds the MediatR request and calls IMediator.Send —
 /// all business logic lives in the handlers in FinancialMcp.Application (see CLAUDE.md > Mediator Pattern).
 /// </summary>
@@ -36,8 +38,9 @@ public sealed class AccountTools(IMediator mediator)
           `BRL`, `USD`, `BTC`. An unrecognized code is rejected by validation before persisting.
 
         ## Behavior
-        - The account is created with no linked cards (`cardIds` starts empty); link cards
-          afterwards via the card-management tools.
+        - The account is created with no linked credit cards (`creditCardIds` starts
+          empty); link credit cards afterwards via `create_credit_card`'s
+          `paymentAccountId` parameter (see `CreditCardTools`).
         - This is a non-destructive write; no confirmation is required.
 
         ## Example
@@ -46,26 +49,28 @@ public sealed class AccountTools(IMediator mediator)
         ```
 
         ## Returns
-        The created `AccountDto` (id, displayName, bankCode, cardIds).
+        The created `AccountDto` (id, displayName, bankCode, creditCardIds).
         """)]
     public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string kind, string baseCurrency, CancellationToken cancellationToken = default) =>
         mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount, Enum.Parse<FinancialAccountKind>(kind)), cancellationToken);
     
     [McpServerTool(Name = "list_accounts"), Description(
         """
-        Lists every registered financial account (checking, credit, investment, and wallet).
+        Lists every registered non-credit-card financial account (checking, investment,
+        wallet, etc. — use `list_credit_cards` for credit cards).
 
         ## Parameters
         None — this tool takes no filters and always returns the full set of accounts.
 
         ## Behavior
         - Read-only; ordered by `displayName`.
-        - Each item includes the `cardIds` currently linked to that account, so a card's
-          owning account can be cross-referenced without a separate call.
+        - Each item includes the `creditCardIds` of credit cards whose bill is paid from
+          that account, so a card's payment account can be cross-referenced without a
+          separate call.
         - Soft-deleted accounts are excluded automatically (global query filter).
 
         ## Returns
-        A list of `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        A list of `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
     public Task<IReadOnlyList<AccountDto>> ListAccountsAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListAccountsQuery(), cancellationToken);
@@ -79,8 +84,10 @@ public sealed class AccountTools(IMediator mediator)
 
         ## Behavior
         - Read-only.
-        - Throws a not-found error if `accountId` doesn't match a registered (non-deleted) account.
-        - Includes the `cardIds` currently linked to this account.
+        - Throws a not-found error if `accountId` doesn't match a registered, non-credit-card
+          account (use `get_credit_card` for credit cards — they share the same id space
+          but are managed exclusively through `CreditCardTools`).
+        - Includes the `creditCardIds` of credit cards whose bill is paid from this account.
 
         ## Example
         ```json
@@ -88,7 +95,7 @@ public sealed class AccountTools(IMediator mediator)
         ```
 
         ## Returns
-        The matching `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        The matching `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
     public Task<AccountDto> GetAccountAsync(Guid accountId, CancellationToken cancellationToken = default) =>
         mediator.Send(new GetAccountQuery(accountId), cancellationToken);
@@ -113,9 +120,9 @@ public sealed class AccountTools(IMediator mediator)
           Optional; rejected by validation if unrecognized.
 
         ## Behavior
-        - Throws a not-found error if `accountId` doesn't match a registered account.
+        - Throws a not-found error if `accountId` doesn't match a registered, non-credit-card account.
         - Non-destructive; no confirmation is required.
-        - Existing linked cards (`cardIds`) are unaffected by this call.
+        - Existing linked credit cards (`creditCardIds`) are unaffected by this call.
 
         ## Example
         ```json
@@ -123,7 +130,7 @@ public sealed class AccountTools(IMediator mediator)
         ```
 
         ## Returns
-        The updated `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, cardIds).
+        The updated `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
     public Task<AccountDto> UpdateAccountAsync(
         Guid accountId, string? displayName = null, string? bankCode = null, decimal? initialAmount = null,
@@ -147,9 +154,11 @@ public sealed class AccountTools(IMediator mediator)
         data is touched.
 
         ## Behavior
-        - Throws a not-found error if `accountId` doesn't match a registered account.
-        - Does not cascade to linked transactions or cards — they keep their `accountId`/`cardId`
-          references; consider that before deleting an account still in active use.
+        - Throws a not-found error if `accountId` doesn't match a registered, non-credit-card
+          account (use `delete_credit_card` for credit cards).
+        - Does not cascade to linked transactions or credit cards — they keep their
+          `accountId`/`paymentAccountId` references; consider that before deleting an
+          account still in active use.
 
         ## Example
         ```json

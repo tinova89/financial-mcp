@@ -28,6 +28,11 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
                     b.Property<string>("BankCode")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -66,6 +71,10 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.HasIndex("BankCode");
 
                     b.ToTable("accounts", (string)null);
+
+                    b.HasDiscriminator<string>("AccountType").HasValue("Account");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("FinancialMcp.Domain.Entities.BudgetGoal", b =>
@@ -107,45 +116,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_budget_goals_category_year_month");
 
                     b.ToTable("budget_goals", (string)null);
-                });
-
-            modelBuilder.Entity("FinancialMcp.Domain.Entities.Card", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<byte>("ClosingDay")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<byte>("DueDay")
-                        .HasColumnType("smallint");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccountId");
-
-                    b.ToTable("cards", (string)null);
                 });
 
             modelBuilder.Entity("FinancialMcp.Domain.Entities.RefreshToken", b =>
@@ -279,15 +249,22 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.ToTable("transactions", (string)null);
                 });
 
-            modelBuilder.Entity("FinancialMcp.Domain.Entities.Card", b =>
+            modelBuilder.Entity("FinancialMcp.Domain.Entities.CreditCard", b =>
                 {
-                    b.HasOne("FinancialMcp.Domain.Entities.Account", "Account")
-                        .WithMany("Cards")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.HasBaseType("FinancialMcp.Domain.Entities.Account");
 
-                    b.Navigation("Account");
+                    b.Property<byte>("ClosingDay")
+                        .HasColumnType("smallint");
+
+                    b.Property<byte>("DueDay")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("PaymentAccountId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("PaymentAccountId");
+
+                    b.HasDiscriminator().HasValue("CreditCard");
                 });
 
             modelBuilder.Entity("FinancialMcp.Domain.Entities.Transaction", b =>
@@ -297,26 +274,37 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("FinancialMcp.Domain.Entities.Card", "Card")
-                        .WithMany("Transactions")
+                    b.HasOne("FinancialMcp.Domain.Entities.CreditCard", "CreditCard")
+                        .WithMany("CardTransactions")
                         .HasForeignKey("CardId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Account");
 
-                    b.Navigation("Card");
+                    b.Navigation("CreditCard");
+                });
+
+            modelBuilder.Entity("FinancialMcp.Domain.Entities.CreditCard", b =>
+                {
+                    b.HasOne("FinancialMcp.Domain.Entities.Account", "PaymentAccount")
+                        .WithMany("CreditCards")
+                        .HasForeignKey("PaymentAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PaymentAccount");
                 });
 
             modelBuilder.Entity("FinancialMcp.Domain.Entities.Account", b =>
                 {
-                    b.Navigation("Cards");
+                    b.Navigation("CreditCards");
 
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("FinancialMcp.Domain.Entities.Card", b =>
+            modelBuilder.Entity("FinancialMcp.Domain.Entities.CreditCard", b =>
                 {
-                    b.Navigation("Transactions");
+                    b.Navigation("CardTransactions");
                 });
 #pragma warning restore 612, 618
         }

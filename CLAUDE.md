@@ -29,7 +29,7 @@ Built with:
   /FinancialMcp.ServiceDefaults    -> Shared Aspire defaults (health checks, telemetry, resilience)
   /FinancialMcp.Api                -> ASP.NET Core Web API + MCP Server host (+ SignalR Hub, if needed for real-time updates)
   /FinancialMcp.Application        -> Application/business logic (use cases, services, MCP tools)
-  /FinancialMcp.Domain              -> Domain entities, value objects (Transaction, Account, Card, BudgetGoal)
+  /FinancialMcp.Domain              -> Domain entities, value objects (Transaction, Account, CreditCard, BudgetGoal)
   /FinancialMcp.Infrastructure      -> EF Core, persistence, CSV statement import/parsing, external integrations
 
 /tests
@@ -76,6 +76,8 @@ The Postgres connection string is injected by Aspire (`ConnectionStrings__financ
   - `get_budget_status` — calculates `Gasto_Real`, `Saldo_Meta`, and `% Utilizado` per category/month, per `metas_orcamento.csv` (see rules below).
   - `get_balance_projection` — generates the consolidated balance projection (`projecao_saldo_contas_completo.csv`), applying the billing cycle, installments, and fixed entries.
   - `import_statement` — imports a new CSV statement (checking account or credit card) into the database.
+  - `list_accounts`/`get_account`/`create_account`/`update_account`/`delete_account` — CRUD for financial accounts (checking, investment, wallet, etc.); never returns/operates on credit cards (see below).
+  - `list_credit_cards`/`get_credit_card`/`create_credit_card`/`update_credit_card`/`delete_credit_card` — CRUD for credit cards. A `CreditCard` is a kind of `Account` (EF Core Table-Per-Hierarchy, same `accounts` table) with its own `ClosingDay`/`DueDay`/`PaymentAccountId`; its `Kind` is always forced to `Credit` and is never a settable parameter.
 - Every tool that **writes/modifies** data (create/update/delete/import) must validate fields according to the source format (`;` separator, `dd/mm/yyyy` dates, dot-decimal) before persisting.
 
 ### Aspire

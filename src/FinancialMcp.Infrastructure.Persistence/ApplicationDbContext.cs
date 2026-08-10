@@ -13,7 +13,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Account> Accounts => Set<Account>();
-    public DbSet<Card> Cards => Set<Card>();
+    public DbSet<CreditCard> CreditCards => Set<CreditCard>();
     public DbSet<BudgetGoal> BudgetGoals => Set<BudgetGoal>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
@@ -22,10 +22,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
         // Global soft-delete query filter — explicit administrative queries can
-        // bypass it via IgnoreQueryFilters().
+        // bypass it via IgnoreQueryFilters(). CreditCard shares Account's filter via
+        // EF Core TPH inheritance — it must not (and cannot) redeclare its own.
         modelBuilder.Entity<Transaction>().HasQueryFilter(t => !t.IsDeleted);
         modelBuilder.Entity<Account>().HasQueryFilter(c => !c.IsDeleted);
-        modelBuilder.Entity<Card>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<BudgetGoal>().HasQueryFilter(m => !m.IsDeleted);
 
         base.OnModelCreating(modelBuilder);

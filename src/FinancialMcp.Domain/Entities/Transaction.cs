@@ -38,7 +38,7 @@ public class Transaction : BaseEntity
     public Account? Account { get; set; }
 
     public Guid? CardId { get; set; }
-    public Card? Card { get; set; }
+    public CreditCard? CreditCard { get; set; }
 
     /// <summary>
     /// Reference Mês_Ano: "Data Conciliado" for reconciled checking account, "Venc. Fatura" for credit card

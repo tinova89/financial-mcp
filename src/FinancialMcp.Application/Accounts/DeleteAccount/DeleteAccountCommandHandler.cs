@@ -16,7 +16,7 @@ public sealed class DeleteAccountCommandHandler(IApplicationDbContext db)
     public async Task Handle(DeleteAccountCommand request, CancellationToken cancellationToken)
     {
         var account = await db.Accounts
-            .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId && !(a is CreditCard), cancellationToken);
 
         if (account is null)
         {

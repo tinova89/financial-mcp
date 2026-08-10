@@ -1,5 +1,6 @@
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Common.Interfaces;
+using FinancialMcp.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,14 +12,15 @@ public sealed class ListAccountsQueryHandler(IApplicationDbContext db)
     public async Task<IReadOnlyList<AccountDto>> Handle(ListAccountsQuery request, CancellationToken cancellationToken)
     {
         var accounts = await db.Accounts.AsNoTracking()
-            .Include(a => a.Cards)
+            .Where(a => !(a is CreditCard))
+            .Include(a => a.CreditCards)
             .OrderBy(a => a.DisplayName)
             .ToListAsync(cancellationToken);
 
         return accounts
             .Select(a => new AccountDto(
                 a.Id, a.DisplayName, a.BankCode, a.InitialAmount,
-                a.Kind.ToString(), a.BaseCurrencyCode, a.Cards.Select(c => c.Id).ToList()))
+                a.Kind.ToString(), a.BaseCurrencyCode, a.CreditCards.Select(c => c.Id).ToList()))
             .ToList();
     }
 }

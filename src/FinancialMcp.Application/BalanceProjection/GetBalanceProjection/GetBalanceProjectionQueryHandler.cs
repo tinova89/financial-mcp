@@ -22,8 +22,8 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
 {
     public async Task<IReadOnlyList<MonthlyProjectionDto>> Handle(GetBalanceProjectionQuery request, CancellationToken cancellationToken)
     {
-        var cards = await db.Cards.AsNoTracking()
-            .Where(c => c.AccountId == request.AccountId)
+        var cards = await db.CreditCards.AsNoTracking()
+            .Where(c => c.PaymentAccountId == request.AccountId)
             .ToListAsync(cancellationToken);
 
         var cardIds = cards.Select(c => c.Id).ToHashSet();

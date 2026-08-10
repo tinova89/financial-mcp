@@ -20,5 +20,9 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(c => c.DeletedAt).HasColumnType("timestamptz");
 
         builder.HasIndex(e => e.BankCode);
+
+        builder.HasDiscriminator<string>("AccountType")
+            .HasValue<Account>("Account")
+            .HasValue<CreditCard>("CreditCard");
     }
 }

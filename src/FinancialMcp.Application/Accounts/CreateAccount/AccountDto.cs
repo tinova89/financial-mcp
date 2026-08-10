@@ -8,4 +8,4 @@ public sealed record AccountDto(
     decimal InitialAmount,
     string Kind,
     string BaseCurrencyCode,
-    IReadOnlyList<Guid> CardIds);
+    IReadOnlyList<Guid> CreditCardIds);

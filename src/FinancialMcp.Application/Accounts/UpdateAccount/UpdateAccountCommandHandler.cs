@@ -14,8 +14,8 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
     public async Task<AccountDto> Handle(UpdateAccountCommand request, CancellationToken cancellationToken)
     {
         var account = await db.Accounts
-            .Include(a => a.Cards)
-            .FirstOrDefaultAsync(a => a.Id == request.AccountId, cancellationToken) ?? throw new NotFoundException(nameof(Account), request.AccountId);
+            .Include(a => a.CreditCards)
+            .FirstOrDefaultAsync(a => a.Id == request.AccountId && !(a is CreditCard), cancellationToken) ?? throw new NotFoundException(nameof(Account), request.AccountId);
         if (request.DisplayName is not null) account.DisplayName = request.DisplayName;
         if (request.BankCode is not null) account.BankCode = request.BankCode;
         if (request.InitialAmount is not null) account.InitialAmount = request.InitialAmount.Value;
@@ -26,6 +26,6 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
 
         return new AccountDto(
             account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
-            account.Kind.ToString(), account.BaseCurrencyCode, account.Cards.Select(c => c.Id).ToList());
+            account.Kind.ToString(), account.BaseCurrencyCode, account.CreditCards.Select(c => c.Id).ToList());
     }
 }

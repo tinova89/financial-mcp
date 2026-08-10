@@ -21,6 +21,10 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     InitialAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     Kind = table.Column<int>(type: "integer", nullable: false),
                     BaseCurrencyCode = table.Column<string>(type: "text", nullable: false),
+                    AccountType = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: false),
+                    ClosingDay = table.Column<byte>(type: "smallint", nullable: true),
+                    DueDay = table.Column<byte>(type: "smallint", nullable: true),
+                    PaymentAccountId = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -29,6 +33,12 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_accounts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_accounts_accounts_PaymentAccountId",
+                        column: x => x.PaymentAccountId,
+                        principalTable: "accounts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -71,31 +81,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "cards",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    ClosingDay = table.Column<byte>(type: "smallint", nullable: false),
-                    DueDay = table.Column<byte>(type: "smallint", nullable: false),
-                    AccountId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_cards", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_cards_accounts_AccountId",
-                        column: x => x.AccountId,
-                        principalTable: "accounts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "transactions",
                 columns: table => new
                 {
@@ -130,9 +115,9 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_transactions_cards_CardId",
+                        name: "FK_transactions_accounts_CardId",
                         column: x => x.CardId,
-                        principalTable: "cards",
+                        principalTable: "accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -143,15 +128,15 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 column: "BankCode");
 
             migrationBuilder.CreateIndex(
+                name: "IX_accounts_PaymentAccountId",
+                table: "accounts",
+                column: "PaymentAccountId");
+
+            migrationBuilder.CreateIndex(
                 name: "ux_budget_goals_category_year_month",
                 table: "budget_goals",
                 columns: new[] { "RawCategory", "Year", "Month" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_cards_AccountId",
-                table: "cards",
-                column: "AccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_TokenHash",
@@ -201,9 +186,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "transactions");
-
-            migrationBuilder.DropTable(
-                name: "cards");
 
             migrationBuilder.DropTable(
                 name: "accounts");

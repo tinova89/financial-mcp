@@ -11,7 +11,7 @@ public interface IApplicationDbContext
 {
     DbSet<Transaction> Transactions { get; }
     DbSet<Account> Accounts { get; }
-    DbSet<Card> Cards { get; }
+    DbSet<CreditCard> CreditCards { get; }
     DbSet<BudgetGoal> BudgetGoals { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
