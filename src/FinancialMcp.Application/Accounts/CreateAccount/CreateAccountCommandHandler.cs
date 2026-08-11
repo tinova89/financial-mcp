@@ -16,7 +16,6 @@ public sealed class CreateAccountCommandHandler(IApplicationDbContext db)
             BankCode = request.BankCode,
             BaseCurrencyCode = request.BaseCurrencyCode,
             InitialAmount = request.InitialAmount,
-            Kind = request.Kind,
         };
 
         db.Accounts.Add(account);

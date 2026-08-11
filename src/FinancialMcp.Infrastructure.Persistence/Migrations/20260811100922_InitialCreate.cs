@@ -19,7 +19,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     BankCode = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     InitialAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    Kind = table.Column<int>(type: "integer", nullable: false),
                     BaseCurrencyCode = table.Column<string>(type: "text", nullable: false),
                     AccountType = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: false),
                     ClosingDay = table.Column<byte>(type: "smallint", nullable: true),

@@ -1,4 +1,3 @@
-using FinancialApp.Model;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Common.Exceptions;
 using FinancialMcp.Application.Common.Interfaces;
@@ -19,7 +18,6 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
         if (request.DisplayName is not null) account.DisplayName = request.DisplayName;
         if (request.BankCode is not null) account.BankCode = request.BankCode;
         if (request.InitialAmount is not null) account.InitialAmount = request.InitialAmount.Value;
-        if (request.Kind is not null) account.Kind = (FinancialAccountKind)request.Kind;
         if (request.BaseCurrencyCode is not null) account.BaseCurrencyCode = request.BaseCurrencyCode;
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).

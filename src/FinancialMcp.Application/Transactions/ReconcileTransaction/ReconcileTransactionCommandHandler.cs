@@ -1,3 +1,4 @@
+using FinancialApp.Model;
 using FinancialMcp.Application.Common.Exceptions;
 using FinancialMcp.Application.Common.Interfaces;
 using FinancialMcp.Domain.Entities;
@@ -13,6 +14,7 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
     public async Task Handle(ReconcileTransactionCommand request, CancellationToken cancellationToken)
     {
         var t = await db.Transactions
+            .Include(x => x.Account)
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)
@@ -22,7 +24,7 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
 
         t.Status = TransactionStatus.Reconciled;
 
-        if (t.Source == TransactionSource.CheckingAccount)
+        if (t.Account.Kind != FinancialAccountKind.Credit)
         {
             t.ReconciledDate = request.ReconciledDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         }

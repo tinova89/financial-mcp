@@ -1,4 +1,3 @@
-using FinancialApp.Model;
 using FinancialMcp.Application.Common.Exceptions;
 using FinancialMcp.Application.Common.Interfaces;
 using FinancialMcp.Domain.Entities;
@@ -8,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.CreditCards.CreateCreditCard;
 
 /// <summary>
-/// Single handler for CreateCreditCardCommand. Kind is always hard-coded to Credit,
-/// never taken from the request. Validates that PaymentAccountId resolves to an
-/// existing, non-CreditCard account before persisting.
+/// Single handler for CreateCreditCardCommand. Kind is never taken from the request —
+/// it's always Credit via CreditCard.Kind's override (see Account.Kind). Validates that
+/// PaymentAccountId resolves to an existing, non-CreditCard account before persisting.
 /// </summary>
 public sealed class CreateCreditCardCommandHandler(IApplicationDbContext db)
     : IRequestHandler<CreateCreditCardCommand, CreditCardDto>
@@ -25,13 +24,13 @@ public sealed class CreateCreditCardCommandHandler(IApplicationDbContext db)
             throw new NotFoundException(nameof(Account), request.PaymentAccountId);
         }
 
+        // Kind is not set here — it's computed as always Credit via CreditCard.Kind's override.
         var creditCard = new CreditCard
         {
             DisplayName = request.DisplayName,
             BankCode = request.BankCode,
             BaseCurrencyCode = request.BaseCurrencyCode,
             InitialAmount = request.InitialAmount,
-            Kind = FinancialAccountKind.Credit,
             ClosingDay = request.ClosingDay,
             DueDay = request.DueDay,
             PaymentAccountId = request.PaymentAccountId,

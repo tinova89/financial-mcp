@@ -34,11 +34,13 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
         }
 
         // Brings in a reasonable universe of candidates (Expense + Reconciled) and filters the
-        // reference Mês_Ano in memory, since it depends on which date column to use
-        // based on the Source (a rule that isn't directly translatable to plain SQL
-        // without duplicating logic — kept centralized in Transaction.GetReferenceMonthYear()).
+        // reference Mês_Ano in memory, since it depends on which date column to use based on
+        // Account.Kind (a rule that isn't directly translatable to plain SQL without duplicating
+        // logic — kept centralized in Transaction.GetReferenceMonthYear()). Include(Account) is
+        // required since that method reads Account.Kind.
         var candidates = await db.Transactions
             .AsNoTracking()
+            .Include(t => t.Account)
             .Where(t => t.Status == TransactionStatus.Reconciled && t.Type == TransactionType.Expense)
             .ToListAsync(cancellationToken);
 

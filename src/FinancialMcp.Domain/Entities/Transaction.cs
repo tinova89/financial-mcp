@@ -1,3 +1,4 @@
+using FinancialApp.Model;
 using FinancialMcp.Domain.Common;
 using FinancialMcp.Domain.Enums;
 using FinancialMcp.Domain.ValueObjects;
@@ -44,16 +45,18 @@ public class Transaction : BaseEntity
 
     /// <summary>
     /// Reference Mês_Ano: "Data Conciliado" for reconciled checking account, "Venc. Fatura" for credit card
-    /// (see CLAUDE.md > Business Rules > Budget goals, item 3).
+    /// (see CLAUDE.md > Business Rules > Budget goals, item 3). Uses Account.Kind — the
+    /// authoritative, always-correct discriminator — rather than the caller-supplied Source.
+    /// Requires Account to be loaded (callers must .Include(t => t.Account)).
     /// </summary>
     public MonthYear? GetReferenceMonthYear()
     {
-        if (Source == TransactionSource.CheckingAccount && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
+        if (Account.Kind != FinancialAccountKind.Credit && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
         {
             return MonthYear.FromDate(ReconciledDate.Value);
         }
 
-        if (Source == TransactionSource.CreditCard && InvoiceDueDate is not null)
+        if (Account.Kind == FinancialAccountKind.Credit && InvoiceDueDate is not null)
         {
             return MonthYear.FromDate(InvoiceDueDate.Value);
         }

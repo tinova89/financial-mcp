@@ -28,8 +28,11 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
 
         var cardIds = cards.Select(c => c.Id).ToHashSet();
 
+        // No Source check needed: cardIds only contains ids of actual CreditCard rows (Account.Kind
+        // == Credit by construction), so AccountId membership alone is the authoritative signal —
+        // no need to also trust the separately-supplied Source flag.
         var cardEntries = await db.Transactions.AsNoTracking()
-            .Where(t => t.Source == TransactionSource.CreditCard && cardIds.Contains(t.AccountId))
+            .Where(t => cardIds.Contains(t.AccountId))
             .ToListAsync(cancellationToken);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);

@@ -1,4 +1,3 @@
-using FinancialApp.Model;
 using FluentValidation;
 
 namespace FinancialMcp.Application.Accounts.UpdateAccount;
@@ -23,10 +22,5 @@ public sealed class UpdateAccountCommandValidator : AbstractValidator<UpdateAcco
                 .Must(code => FinancialCurrency.All.Any(c => c.CurrencyCode == code))
                 .WithMessage(x => $"BaseCurrencyCode \"{x.BaseCurrencyCode}\" não é reconhecido. Moedas suportadas: " +
                     $"{string.Join(", ", FinancialCurrency.All.Select(c => c.CurrencyCode))}."));
-
-        When(x => x.Kind is not null, () =>
-            RuleFor(x => x.Kind!.Value).IsInEnum()
-                .WithMessage(x => $"Kind \"{x.Kind}\" não é válido. Valores suportados: " +
-                    $"{string.Join(", ", Enum.GetNames<FinancialAccountKind>())}."));
     }
 }
