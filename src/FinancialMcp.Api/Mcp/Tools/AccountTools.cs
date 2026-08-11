@@ -1,4 +1,3 @@
-using FinancialApp.Model;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Accounts.DeleteAccount;
 using FinancialMcp.Application.Accounts.GetAccount;
@@ -22,8 +21,8 @@ public sealed class AccountTools(IMediator mediator)
 {
     [McpServerTool(Name = "create_account"), Description(
         """
-        Registers a new financial account (checking, credit, investment, or wallet) so that
-        transactions and cards can be linked to it.
+        Registers a new financial account (a plain, non-credit-card account — checking,
+        investment, wallet, etc.) so that transactions and credit cards can be linked to it.
 
         ## Parameters
         - **bankCode** — COMPE bank code identifying the institution. Supported values:
@@ -32,10 +31,13 @@ public sealed class AccountTools(IMediator mediator)
         - **displayName** — Friendly name shown to the user (e.g. `"Nubank Corrente"`).
           Required, up to 200 characters.
         - **initialAmount** — Opening balance for the account, expressed in `baseCurrency`.
-        - **kind** — Account classification, one of: `Credit`, `Debit`, `Investment`, `Wallet`.
-          Drives reporting and business rules (e.g. credit vs. debit vs. investment behavior).
         - **baseCurrency** — ISO currency code for the account's balance. Supported values:
           `BRL`, `USD`, `BTC`. An unrecognized code is rejected by validation before persisting.
+
+        ## Not a parameter
+        - **kind** is intentionally absent — it's computed from the entity's own type, not
+          a stored/settable field: a plain account created here always reports `"Debit"`;
+          only a `CreditCard` (created via `create_credit_card`) reports `"Credit"`.
 
         ## Behavior
         - The account is created with no linked credit cards (`creditCardIds` starts
@@ -45,14 +47,14 @@ public sealed class AccountTools(IMediator mediator)
 
         ## Example
         ```json
-        { "bankCode": "260", "displayName": "Nubank Corrente", "initialAmount": 1500.00, "kind": "Debit", "baseCurrency": "BRL" }
+        { "bankCode": "260", "displayName": "Nubank Corrente", "initialAmount": 1500.00, "baseCurrency": "BRL" }
         ```
 
         ## Returns
-        The created `AccountDto` (id, displayName, bankCode, creditCardIds).
+        The created `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
-    public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string kind, string baseCurrency, CancellationToken cancellationToken = default) =>
-        mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount, Enum.Parse<FinancialAccountKind>(kind)), cancellationToken);
+    public Task<AccountDto> CreateAccountAsync(string bankCode, string displayName, decimal initialAmount, string baseCurrency, CancellationToken cancellationToken = default) =>
+        mediator.Send(new CreateAccountCommand(bankCode, displayName, baseCurrency, initialAmount), cancellationToken);
     
     [McpServerTool(Name = "list_accounts"), Description(
         """
@@ -114,10 +116,12 @@ public sealed class AccountTools(IMediator mediator)
           unrecognized.
         - **initialAmount** — New opening balance, expressed in the account's `baseCurrencyCode`.
           Optional.
-        - **kind** — New account classification: `Credit`, `Debit`, `Investment`, or `Wallet`.
-          Optional; rejected by validation if not one of these values.
         - **baseCurrencyCode** — New ISO currency code. Supported values: `BRL`, `USD`, `BTC`.
           Optional; rejected by validation if unrecognized.
+
+        ## Not a parameter
+        - **kind** cannot be changed — it's computed from the entity's own type, always
+          `"Debit"` for accounts managed by this tool.
 
         ## Behavior
         - Throws a not-found error if `accountId` doesn't match a registered, non-credit-card account.
@@ -134,10 +138,8 @@ public sealed class AccountTools(IMediator mediator)
         """)]
     public Task<AccountDto> UpdateAccountAsync(
         Guid accountId, string? displayName = null, string? bankCode = null, decimal? initialAmount = null,
-        string? kind = null, string? baseCurrencyCode = null, CancellationToken cancellationToken = default) =>
-        mediator.Send(new UpdateAccountCommand(
-            accountId, displayName, bankCode, initialAmount,
-            kind is null ? null : Enum.Parse<FinancialAccountKind>(kind), baseCurrencyCode), cancellationToken);
+        string? baseCurrencyCode = null, CancellationToken cancellationToken = default) =>
+        mediator.Send(new UpdateAccountCommand(accountId, displayName, bankCode, initialAmount, baseCurrencyCode), cancellationToken);
 
     [McpServerTool(Name = "delete_account"), Description(
         """
