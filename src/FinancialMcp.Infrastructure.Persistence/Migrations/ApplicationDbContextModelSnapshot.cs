@@ -209,9 +209,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.Property<int>("Recurrence")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Source")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 

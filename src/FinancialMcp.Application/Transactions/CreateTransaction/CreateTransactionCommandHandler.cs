@@ -17,7 +17,6 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
     {
         var transaction = new Transaction
         {
-            Source = request.Source,
             Type = request.Type,
             Status = request.Status,
             Description = request.Description,
@@ -39,7 +38,6 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
 
         return new TransactionDto(
             transaction.Id,
-            transaction.Source.ToString(),
             transaction.Type.ToString(),
             transaction.Status.ToString(),
             transaction.Description,

@@ -9,7 +9,6 @@ namespace FinancialMcp.Application.Transactions.ListTransactions;
 /// `list_transactions` (see CLAUDE.md > MCP). All filters are optional.
 /// </summary>
 public sealed record ListTransactionsQuery(
-    TransactionSource? Source = null,
     TransactionType? Type = null,
     TransactionStatus? Status = null,
     string? ParentCategory = null,

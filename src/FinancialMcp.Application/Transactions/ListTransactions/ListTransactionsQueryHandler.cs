@@ -17,13 +17,8 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
     public async Task<PagedResult<TransactionDto>> Handle(ListTransactionsQuery request, CancellationToken cancellationToken)
     {
         // Include(Account) is required for GetReferenceMonthYear() below, which reads
-        // Account.Kind (not Source) to pick the right reference-date column.
+        // Account.Kind to pick the right reference-date column.
         var query = db.Transactions.AsNoTracking().Include(t => t.Account).AsQueryable();
-
-        if (request.Source is not null)
-        {
-            query = query.Where(t => t.Source == request.Source);
-        }
 
         if (request.Type is not null)
         {
@@ -78,7 +73,6 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
     private static TransactionDto Map(Transaction t) => new(
         t.Id,
-        t.Source.ToString(),
         t.Type.ToString(),
         t.Status.ToString(),
         t.Description,

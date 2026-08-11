@@ -32,7 +32,7 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db)
         t.UpdatedAt = DateTimeOffset.UtcNow;
 
         return new TransactionDto(
-            t.Id, t.Source.ToString(), t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
+            t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
             t.RawCategory, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId);
     }

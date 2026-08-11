@@ -1,17 +1,17 @@
 using FinancialMcp.Application.Common.Behaviors;
-using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
 /// <summary>
 /// Imports a new CSV statement (checking account or credit card) into the database. Corresponds to the MCP tool
-/// `import_statement`. Source format: ";" separator, "dd/mm/yyyy" dates,
-/// dot-decimal (see CLAUDE.md > MCP and Code Conventions).
+/// `import_statement`. CSV format: ";" separator, "dd/mm/yyyy" dates,
+/// dot-decimal (see CLAUDE.md > MCP and Code Conventions). Whether the statement is a
+/// checking-account or credit-card one is determined by AccountId's actual Account.Kind,
+/// not a separate flag.
 /// </summary>
 public sealed record ImportStatementCommand(
-    TransactionSource Source,
-    Guid? AccountId,
+    Guid AccountId,
     string CsvContent) : IRequest<ImportStatementResultDto>, ITransactionalRequest;
 
 /// <summary>

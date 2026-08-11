@@ -8,8 +8,9 @@ public sealed class ImportStatementCommandValidator : AbstractValidator<ImportSt
     {
         RuleFor(x => x.CsvContent).NotEmpty();
 
-        // AccountId is required regardless of source: the checking account for CheckingAccount
-        // rows, or the CreditCard's own id for CreditCard rows (it's an Account row via TPH).
-        RuleFor(x => x.AccountId).NotNull();
+        // Required regardless of the referenced account's kind: the checking account for
+        // checking-account rows, or the CreditCard's own id for credit-card rows (it's an
+        // Account row via TPH).
+        RuleFor(x => x.AccountId).NotEmpty();
     }
 }

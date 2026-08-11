@@ -9,7 +9,6 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// fields for each statement type. Corresponds to the MCP tool `create_transaction` (see CLAUDE.md > MCP).
 /// </summary>
 public sealed record CreateTransactionCommand(
-    TransactionSource Source,
     TransactionType Type,
     TransactionStatus Status,
     string Description,

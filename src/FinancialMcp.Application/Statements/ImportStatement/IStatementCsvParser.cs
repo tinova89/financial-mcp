@@ -1,5 +1,4 @@
 using FinancialMcp.Domain.Entities;
-using FinancialMcp.Domain.Enums;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
@@ -11,9 +10,10 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 public interface IStatementCsvParser
 {
     /// <summary>
-    /// accountId identifies the destination for both sources: the checking account itself for
-    /// CheckingAccount rows, or the CreditCard's own id (it's an Account row via EF Core TPH) for
-    /// CreditCard rows.
+    /// accountId identifies the destination — the checking account itself, or a CreditCard's
+    /// own id (it's an Account row via EF Core TPH) — for every parsed row. isCreditCard tells
+    /// the parser which CSV columns to expect (Data Conciliado vs. Venc. Fatura/Repetição/
+    /// Parcela), determined by the caller from the referenced account's actual Account.Kind.
     /// </summary>
-    IReadOnlyList<Transaction> Parse(string csvContent, TransactionSource source, Guid? accountId, out IReadOnlyList<string> warnings);
+    IReadOnlyList<Transaction> Parse(string csvContent, bool isCreditCard, Guid accountId, out IReadOnlyList<string> warnings);
 }

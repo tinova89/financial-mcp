@@ -12,7 +12,6 @@ namespace FinancialMcp.Domain.Entities;
 /// </summary>
 public class Transaction : BaseEntity
 {
-    public TransactionSource Source { get; set; }
     public TransactionType Type { get; set; }
     public TransactionStatus Status { get; set; }
 

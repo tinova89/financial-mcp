@@ -1,5 +1,7 @@
 using FinancialMcp.Application.Common.Interfaces;
+using FinancialMcp.Domain.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
 
@@ -15,9 +17,14 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 public sealed class ImportStatementCommandHandler(IApplicationDbContext db, IStatementCsvParser parser)
     : IRequestHandler<ImportStatementCommand, ImportStatementResultDto>
 {
-    public Task<ImportStatementResultDto> Handle(ImportStatementCommand request, CancellationToken cancellationToken)
+    public async Task<ImportStatementResultDto> Handle(ImportStatementCommand request, CancellationToken cancellationToken)
     {
-        var transactions = parser.Parse(request.CsvContent, request.Source, request.AccountId, out var warnings);
+        // Whether this is a checking-account or credit-card statement is determined by the
+        // referenced account's actual type, not a separately-supplied flag.
+        var isCreditCard = await db.Accounts
+            .AnyAsync(a => a.Id == request.AccountId && a is CreditCard, cancellationToken);
+
+        var transactions = parser.Parse(request.CsvContent, isCreditCard, request.AccountId, out var warnings);
 
         foreach (var transaction in transactions)
         {
@@ -26,9 +33,9 @@ public sealed class ImportStatementCommandHandler(IApplicationDbContext db, ISta
 
         // Final SaveChangesAsync is done by TransactionBehavior (single commit for the whole batch).
 
-        return Task.FromResult(new ImportStatementResultDto(
+        return new ImportStatementResultDto(
             LinesProcessed: transactions.Count + warnings.Count,
             LinesImported: transactions.Count,
-            Warnings: warnings));
+            Warnings: warnings);
     }
 }

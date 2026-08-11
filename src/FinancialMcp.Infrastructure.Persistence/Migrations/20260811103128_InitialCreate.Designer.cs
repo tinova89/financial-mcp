@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FinancialMcp.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260811100922_InitialCreate")]
+    [Migration("20260811103128_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -210,9 +210,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .HasColumnType("date");
 
                     b.Property<int>("Recurrence")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Source")
                         .HasColumnType("integer");
 
                     b.Property<int>("Status")

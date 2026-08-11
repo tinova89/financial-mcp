@@ -26,7 +26,6 @@ public sealed class TransactionTools(IMediator mediator)
         filters, paginated.
 
         ## Parameters
-        - **source** — Filter by `CheckingAccount` or `CreditCard`. Optional.
         - **type** — Filter by `Expense`, `Income`, `Transfer`, or `Payment`. Optional.
         - **status** — Filter by `Reconciled`, `Scheduled`, or `Unreconciled`. Optional.
         - **parentCategory** — Filter to rows whose category starts with this parent (e.g.
@@ -50,21 +49,21 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "source": "CreditCard", "status": "Unreconciled", "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
+        { "status": "Unreconciled", "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
         ```
 
         ## Returns
         A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages).
         """)]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
-        TransactionSource? source = null, TransactionType? type = null, Domain.Enums.TransactionStatus? status = null,
+        TransactionType? type = null, Domain.Enums.TransactionStatus? status = null,
         string? parentCategory = null, string? subcategory = null,
         Guid? accountId = null,
         DateOnly? periodStart = null, DateOnly? periodEnd = null,
         int? year = null, int? month = null, int page = 1, int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         mediator.Send(new ListTransactionsQuery(
-            source, type, status, parentCategory, subcategory, accountId,
+            type, status, parentCategory, subcategory, accountId,
             periodStart, periodEnd, year, month, page, pageSize), cancellationToken);
 
     [McpServerTool(Name = "get_transaction"), Description(
@@ -85,8 +84,8 @@ public sealed class TransactionTools(IMediator mediator)
         ```
 
         ## Returns
-        The matching `TransactionDto` (id, source, type, status, description, amount,
-        rawCategory, expectedDate, actualDate, reconciledDate, invoiceDueDate, recurrence,
+        The matching `TransactionDto` (id, type, status, description, amount, rawCategory,
+        expectedDate, actualDate, reconciledDate, invoiceDueDate, recurrence,
         currentInstallment, totalInstallments, accountId).
         """)]
     public Task<TransactionDto> GetTransactionAsync(Guid transactionId, CancellationToken cancellationToken = default) =>
@@ -99,7 +98,6 @@ public sealed class TransactionTools(IMediator mediator)
         `CreateTransactionCommand`.
 
         ## Parameters (fields of the command object)
-        - **source** — `CheckingAccount` or `CreditCard`. Required.
         - **type** — `Expense`, `Income`, `Transfer`, or `Payment`. Required.
         - **status** — `Reconciled`, `Scheduled`, or `Unreconciled`. Required.
         - **description** — Up to 500 characters. Required.
@@ -109,24 +107,28 @@ public sealed class TransactionTools(IMediator mediator)
         - **expectedDate** — The statement's "Data prevista". Required.
         - **actualDate** — The statement's "Data efetiva". Optional.
         - **reconciledDate** — Set when reconciling a checking-account row. Optional.
-        - **invoiceDueDate** — Required when `source = CreditCard` ("Venc. Fatura").
+        - **invoiceDueDate** — Required when `accountId` refers to a credit card
+          ("Venc. Fatura").
         - **recurrence** — `None`, `Installment`, or `FixedMonthly`. Required.
         - **currentInstallment** / **totalInstallments** — Required (and
           `totalInstallments >= currentInstallment`) when `recurrence = Installment`.
-        - **accountId** — `Guid` identifying the destination: the checking account itself
-          for `source = CheckingAccount`, or the credit card's own id for
-          `source = CreditCard` (a credit card is an Account row via EF Core TPH).
-          Required in both cases.
+        - **accountId** — `Guid` identifying the destination: a checking account for a
+          plain checking-account transaction, or a credit card's own id for a credit-card
+          transaction (a credit card is an Account row via EF Core TPH). Required.
+
+        ## Not a parameter
+        - There's no `source`/`type-of-account` flag — whether credit-card-specific rules
+          apply (required `invoiceDueDate`, installment validation) is determined by
+          looking up `accountId`'s actual `Account.Kind`, not a caller-supplied label that
+          could disagree with what `accountId` really points at.
 
         ## Behavior
         - Non-destructive write; no confirmation is required.
-        - Validation differs by `source`: credit-card rows additionally require
-          `invoiceDueDate` and (for installment plans) valid installment numbers; every row
-          requires a non-empty `accountId` regardless of source.
+        - Every row requires a non-empty `accountId` regardless of what kind of account it is.
 
         ## Example
         ```json
-        { "source": "CreditCard", "type": "Expense", "status": "Unreconciled",
+        { "type": "Expense", "status": "Unreconciled",
           "description": "Notebook 6/12", "amount": -450.00, "rawCategory": "Eletrônicos",
           "expectedDate": "2026-08-05", "invoiceDueDate": "2026-08-12",
           "recurrence": "Installment", "currentInstallment": 6, "totalInstallments": 12,
@@ -154,8 +156,8 @@ public sealed class TransactionTools(IMediator mediator)
           dates. Optional.
 
         ## Not patchable here
-        - **source**, **accountId**, **recurrence**, and installment fields cannot be
-          changed through this tool — recreate the transaction if those need to differ.
+        - **accountId**, **recurrence**, and installment fields cannot be changed through
+          this tool — recreate the transaction if those need to differ.
 
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.

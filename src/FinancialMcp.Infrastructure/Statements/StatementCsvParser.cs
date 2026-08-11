@@ -33,7 +33,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
     };
 
     public IReadOnlyList<Transaction> Parse(
-        string csvContent, TransactionSource source, Guid? accountId, out IReadOnlyList<string> warnings)
+        string csvContent, bool isCreditCard, Guid accountId, out IReadOnlyList<string> warnings)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -60,7 +60,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
 
             try
             {
-                var transaction = MapRow(csv, source, accountId);
+                var transaction = MapRow(csv, isCreditCard, accountId);
                 transactions.Add(transaction);
             }
             catch (Exception ex)
@@ -73,12 +73,8 @@ public sealed class StatementCsvParser : IStatementCsvParser
         return transactions;
     }
 
-    private static Transaction MapRow(CsvReader csv, TransactionSource source, Guid? accountId)
+    private static Transaction MapRow(CsvReader csv, bool isCreditCard, Guid accountId)
     {
-        // `source` indicates which statement type is being imported — it's an Application-controlled
-        // parameter (already English by the time it gets here), not raw CSV text, so it's parsed directly.
-        var sourceEnum = source;
-
         var rawAmount = csv.GetField("Valor") ?? throw new FormatException("Campo 'Valor' ausente.");
         var amount = decimal.Parse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture);
 
@@ -92,7 +88,6 @@ public sealed class StatementCsvParser : IStatementCsvParser
 
         var transaction = new Transaction
         {
-            Source = sourceEnum,
             Type = ResolveType(rawType),
             Status = ResolveStatus(rawStatus),
             Description = description,
@@ -100,13 +95,10 @@ public sealed class StatementCsvParser : IStatementCsvParser
             RawCategory = category,
             ExpectedDate = expectedDate,
             ActualDate = ParseDdMmYyyyDate(csv.GetField("Data efetiva")),
-            // AccountId is mandatory on the entity and identifies both sources: the checking
-            // account for CheckingAccount rows, or the CreditCard's own id for CreditCard rows
-            // (valid since CreditCard is an Account row via EF Core TPH).
-            AccountId = accountId ?? throw new FormatException("AccountId ausente para a origem informada.")
+            AccountId = accountId
         };
 
-        if (sourceEnum == TransactionSource.CheckingAccount)
+        if (!isCreditCard)
         {
             transaction.ReconciledDate = ParseDdMmYyyyDate(csv.GetField("Data Conciliado"));
         }
