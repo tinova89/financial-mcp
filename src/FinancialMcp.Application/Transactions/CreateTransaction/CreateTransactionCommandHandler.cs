@@ -30,8 +30,7 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
             Recurrence = request.Recurrence,
             CurrentInstallment = request.CurrentInstallment,
             TotalInstallments = request.TotalInstallments,
-            AccountId = request.AccountId,
-            CardId = request.CardId
+            AccountId = request.AccountId
         };
 
         db.Transactions.Add(transaction);
@@ -53,7 +52,6 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
             transaction.Recurrence.ToString(),
             transaction.CurrentInstallment,
             transaction.TotalInstallments,
-            transaction.AccountId,
-            transaction.CardId);
+            transaction.AccountId);
     }
 }

@@ -98,8 +98,7 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     Recurrence = table.Column<int>(type: "integer", nullable: false),
                     CurrentInstallment = table.Column<int>(type: "integer", nullable: true),
                     TotalInstallments = table.Column<int>(type: "integer", nullable: true),
-                    AccountId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CardId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AccountId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -111,12 +110,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_transactions_accounts_AccountId",
                         column: x => x.AccountId,
-                        principalTable: "accounts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_transactions_accounts_CardId",
-                        column: x => x.CardId,
                         principalTable: "accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -150,14 +143,9 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_transactions_AccountId",
+                name: "ix_transactions_account_total_installments",
                 table: "transactions",
-                column: "AccountId");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_transactions_card_total_installments",
-                table: "transactions",
-                columns: new[] { "CardId", "TotalInstallments" });
+                columns: new[] { "AccountId", "TotalInstallments" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_transactions_invoice_due_date",

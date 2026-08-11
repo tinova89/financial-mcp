@@ -22,16 +22,18 @@ public sealed class TransactionTools(IMediator mediator)
 {
     [McpServerTool(Name = "list_transactions"), Description(
         "Lists checking account and/or credit card transactions with filters " +
-        "(type, status, category/subcategory, account, card, period, reference month).")]
+        "(type, status, category/subcategory, account, period, reference month). " +
+        "accountId matches both: the checking account for checking-account transactions, " +
+        "or the credit card's own id for credit-card transactions.")]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
         TransactionSource? source = null, TransactionType? type = null, Domain.Enums.TransactionStatus? status = null,
         string? parentCategory = null, string? subcategory = null,
-        Guid? accountId = null, Guid? cardId = null,
+        Guid? accountId = null,
         DateOnly? periodStart = null, DateOnly? periodEnd = null,
         int? year = null, int? month = null, int page = 1, int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         mediator.Send(new ListTransactionsQuery(
-            source, type, status, parentCategory, subcategory, accountId, cardId,
+            source, type, status, parentCategory, subcategory, accountId,
             periodStart, periodEnd, year, month, page, pageSize), cancellationToken);
 
     [McpServerTool(Name = "get_transaction"), Description("Detail of a specific transaction.")]

@@ -15,7 +15,6 @@ public sealed record ListTransactionsQuery(
     string? ParentCategory = null,
     string? Subcategory = null,
     Guid? AccountId = null,
-    Guid? CardId = null,
     DateOnly? PeriodStart = null,
     DateOnly? PeriodEnd = null,
     int? Year = null,

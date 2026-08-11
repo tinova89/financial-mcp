@@ -31,11 +31,10 @@ public sealed class StatementTools(IMediator mediator)
         - `csvContent` (string)  
           The full CSV content to import.
 
-        - `accountId` (`Guid?`)  
-          Optional: associate imported transactions with a checking account.
-
-        - `cardId` (`Guid?`)  
-          Optional: associate imported transactions with a credit card.
+        - `accountId` (`Guid?`)
+          Required in practice: associates imported transactions with their destination —
+          the checking account itself for `CheckingAccount` rows, or the credit card's own id
+          for `CreditCard` rows (a credit card is an Account row via EF Core TPH).
 
         - `cancellationToken` (`CancellationToken`)
           Token to cancel the import operation.
@@ -48,7 +47,7 @@ public sealed class StatementTools(IMediator mediator)
         - `OperationCanceledException` — if the operation is canceled via `cancellationToken`."
     )]
     public Task<ImportStatementResultDto> ImportStatementAsync(
-        string source, string csvContent, Guid? accountId = null, Guid? cardId = null,
+        string source, string csvContent, Guid? accountId = null,
         CancellationToken cancellationToken = default) =>
-        mediator.Send(new ImportStatementCommand(Enum.Parse<TransactionSource>(source), accountId, cardId, csvContent), cancellationToken);
+        mediator.Send(new ImportStatementCommand(Enum.Parse<TransactionSource>(source), accountId, csvContent), cancellationToken);
 }

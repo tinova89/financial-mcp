@@ -29,7 +29,7 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
         var cardIds = cards.Select(c => c.Id).ToHashSet();
 
         var cardEntries = await db.Transactions.AsNoTracking()
-            .Where(t => t.Source == TransactionSource.CreditCard && t.CardId != null && cardIds.Contains(t.CardId!.Value))
+            .Where(t => t.Source == TransactionSource.CreditCard && cardIds.Contains(t.AccountId))
             .ToListAsync(cancellationToken);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -60,7 +60,7 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
             // 2) Remaining installments of "Parcelado" entries whose installment for this month doesn't exist yet in the statement.
             foreach (var group in cardEntries
                          .Where(t => t.Recurrence == RecurrenceType.Installment && t.CurrentInstallment is not null && t.TotalInstallments is not null)
-                         .GroupBy(t => new { t.CardId, BaseDescription = RemoveInstallmentSuffix(t.Description) }))
+                         .GroupBy(t => new { t.AccountId, BaseDescription = RemoveInstallmentSuffix(t.Description) }))
             {
                 var lastKnownInstallment = group.OrderByDescending(t => t.CurrentInstallment).First();
                 var projectedInstallment = lastKnownInstallment.CurrentInstallment!.Value + InstallmentsAlreadyGeneratedUntil(lastKnownInstallment, monthYear);
@@ -83,7 +83,7 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
                 }
 
                 var alreadyExistsThisMonth = existingEntries.Any(t =>
-                    t.CardId == lastKnownInstallment.CardId &&
+                    t.AccountId == lastKnownInstallment.AccountId &&
                     RemoveInstallmentSuffix(t.Description) == RemoveInstallmentSuffix(lastKnownInstallment.Description));
 
                 if (alreadyExistsThisMonth)
@@ -104,7 +104,7 @@ public sealed class GetBalanceProjectionQueryHandler(IApplicationDbContext db)
             // 3) "Fixo Mês" entries — repeat every month until an end is indicated (not modeled in the MVP: repeats indefinitely).
             foreach (var fixedEntry in cardEntries.Where(t => t.Recurrence == RecurrenceType.FixedMonthly))
             {
-                var alreadyExistsThisMonth = existingEntries.Any(t => t.CardId == fixedEntry.CardId && t.Description == fixedEntry.Description);
+                var alreadyExistsThisMonth = existingEntries.Any(t => t.AccountId == fixedEntry.AccountId && t.Description == fixedEntry.Description);
                 if (alreadyExistsThisMonth || fixedEntry.InvoiceDueDate is null)
                 {
                     continue;

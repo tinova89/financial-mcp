@@ -22,5 +22,6 @@ public sealed record CreateTransactionCommand(
     RecurrenceType Recurrence,
     int? CurrentInstallment,
     int? TotalInstallments,
-    Guid? AccountId,
-    Guid? CardId) : IRequest<TransactionDto>, ITransactionalRequest;
+    // Identifies both sources: the checking account for CheckingAccount transactions, or the
+    // CreditCard's own id for CreditCard transactions (it's an Account row via EF Core TPH).
+    Guid AccountId) : IRequest<TransactionDto>, ITransactionalRequest;

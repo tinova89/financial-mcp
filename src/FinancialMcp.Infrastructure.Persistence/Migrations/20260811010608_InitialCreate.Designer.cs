@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FinancialMcp.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260810235004_InitialCreate")]
+    [Migration("20260811010608_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -172,7 +172,7 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("AccountId")
+                    b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
                     b.Property<DateOnly?>("ActualDate")
@@ -180,9 +180,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric(14,2)");
-
-                    b.Property<Guid?>("CardId")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamptz");
@@ -235,16 +232,14 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
-
                     b.HasIndex("InvoiceDueDate")
                         .HasDatabaseName("ix_transactions_invoice_due_date");
 
                     b.HasIndex("ReconciledDate")
                         .HasDatabaseName("ix_transactions_reconciled_date");
 
-                    b.HasIndex("CardId", "TotalInstallments")
-                        .HasDatabaseName("ix_transactions_card_total_installments");
+                    b.HasIndex("AccountId", "TotalInstallments")
+                        .HasDatabaseName("ix_transactions_account_total_installments");
 
                     b.HasIndex("Status", "Type")
                         .HasDatabaseName("ix_transactions_status_type");
@@ -275,16 +270,10 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.HasOne("FinancialMcp.Domain.Entities.Account", "Account")
                         .WithMany("Transactions")
                         .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("FinancialMcp.Domain.Entities.CreditCard", "CreditCard")
-                        .WithMany()
-                        .HasForeignKey("CardId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Account");
-
-                    b.Navigation("CreditCard");
                 });
 
             modelBuilder.Entity("FinancialMcp.Domain.Entities.CreditCard", b =>

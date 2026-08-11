@@ -33,7 +33,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
     };
 
     public IReadOnlyList<Transaction> Parse(
-        string csvContent, TransactionSource source, Guid? accountId, Guid? cardId, out IReadOnlyList<string> warnings)
+        string csvContent, TransactionSource source, Guid? accountId, out IReadOnlyList<string> warnings)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -60,7 +60,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
 
             try
             {
-                var transaction = MapRow(csv, source, accountId, cardId);
+                var transaction = MapRow(csv, source, accountId);
                 transactions.Add(transaction);
             }
             catch (Exception ex)
@@ -73,7 +73,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
         return transactions;
     }
 
-    private static Transaction MapRow(CsvReader csv, TransactionSource source, Guid? accountId, Guid? cardId)
+    private static Transaction MapRow(CsvReader csv, TransactionSource source, Guid? accountId)
     {
         // `source` indicates which statement type is being imported — it's an Application-controlled
         // parameter (already English by the time it gets here), not raw CSV text, so it's parsed directly.
@@ -100,8 +100,10 @@ public sealed class StatementCsvParser : IStatementCsvParser
             RawCategory = category,
             ExpectedDate = expectedDate,
             ActualDate = ParseDdMmYyyyDate(csv.GetField("Data efetiva")),
-            AccountId = sourceEnum == TransactionSource.CheckingAccount ? accountId : null,
-            CardId = sourceEnum == TransactionSource.CreditCard ? cardId : null
+            // AccountId is mandatory on the entity and identifies both sources: the checking
+            // account for CheckingAccount rows, or the CreditCard's own id for CreditCard rows
+            // (valid since CreditCard is an Account row via EF Core TPH).
+            AccountId = accountId ?? throw new FormatException("AccountId ausente para a origem informada.")
         };
 
         if (sourceEnum == TransactionSource.CheckingAccount)

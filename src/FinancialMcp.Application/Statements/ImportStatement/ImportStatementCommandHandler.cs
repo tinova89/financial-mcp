@@ -17,7 +17,7 @@ public sealed class ImportStatementCommandHandler(IApplicationDbContext db, ISta
 {
     public Task<ImportStatementResultDto> Handle(ImportStatementCommand request, CancellationToken cancellationToken)
     {
-        var transactions = parser.Parse(request.CsvContent, request.Source, request.AccountId, request.CardId, out var warnings);
+        var transactions = parser.Parse(request.CsvContent, request.Source, request.AccountId, out var warnings);
 
         foreach (var transaction in transactions)
         {

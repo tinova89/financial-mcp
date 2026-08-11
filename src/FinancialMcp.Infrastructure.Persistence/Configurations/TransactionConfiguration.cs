@@ -42,11 +42,6 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .HasForeignKey(t => t.AccountId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(t => t.CreditCard)
-            .WithMany()
-            .HasForeignKey(t => t.CardId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         // Speeds up get_budget_status (aggregation by parent category/month).
         builder.HasIndex(t => new { t.Status, t.Type })
             .HasDatabaseName("ix_transactions_status_type");
@@ -54,9 +49,11 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
         builder.HasIndex(t => t.ReconciledDate)
             .HasDatabaseName("ix_transactions_reconciled_date");
 
-        // Speeds up get_balance_projection (installments/card statement cycle).
-        builder.HasIndex(t => new { t.CardId, t.TotalInstallments })
-            .HasDatabaseName("ix_transactions_card_total_installments");
+        // Speeds up get_balance_projection (installments/card statement cycle) — AccountId
+        // identifies the specific card for credit-card-sourced transactions too, since a
+        // CreditCard's own id is what's stored there (see Transaction.AccountId doc).
+        builder.HasIndex(t => new { t.AccountId, t.TotalInstallments })
+            .HasDatabaseName("ix_transactions_account_total_installments");
 
         builder.HasIndex(t => t.InvoiceDueDate)
             .HasDatabaseName("ix_transactions_invoice_due_date");

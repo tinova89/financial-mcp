@@ -16,5 +16,4 @@ public sealed record TransactionDto(
     string? Recurrence,
     int? CurrentInstallment,
     int? TotalInstallments,
-    Guid? AccountId,
-    Guid? CardId);
+    Guid AccountId);

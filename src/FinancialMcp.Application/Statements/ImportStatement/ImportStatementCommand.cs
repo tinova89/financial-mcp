@@ -12,7 +12,6 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 public sealed record ImportStatementCommand(
     TransactionSource Source,
     Guid? AccountId,
-    Guid? CardId,
     string CsvContent) : IRequest<ImportStatementResultDto>, ITransactionalRequest;
 
 /// <summary>

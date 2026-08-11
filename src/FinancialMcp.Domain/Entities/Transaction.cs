@@ -34,11 +34,13 @@ public class Transaction : BaseEntity
     public int? CurrentInstallment { get; set; }
     public int? TotalInstallments { get; set; }
 
-    public Guid? AccountId { get; set; }
-    public Account? Account { get; set; }
-
-    public Guid? CardId { get; set; }
-    public CreditCard? CreditCard { get; set; }
+    /// <summary>
+    /// Always set. For checking-account-sourced transactions, the checking account itself;
+    /// for credit-card-sourced transactions, the CreditCard's own row (valid since CreditCard
+    /// is an Account via EF Core TPH) — the single relationship identifies both.
+    /// </summary>
+    public Guid AccountId { get; set; }
+    public Account Account { get; set; } = default!;
 
     /// <summary>
     /// Reference Mês_Ano: "Data Conciliado" for reconciled checking account, "Venc. Fatura" for credit card

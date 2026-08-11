@@ -1,5 +1,3 @@
-using FinancialMcp.Domain.Entities;
-using FinancialMcp.Domain.Enums;
 using FluentValidation;
 
 namespace FinancialMcp.Application.Statements.ImportStatement;
@@ -10,7 +8,8 @@ public sealed class ImportStatementCommandValidator : AbstractValidator<ImportSt
     {
         RuleFor(x => x.CsvContent).NotEmpty();
 
-        When(x => x.Source == TransactionSource.CheckingAccount, () => RuleFor(x => x.AccountId).NotNull());
-        When(x => x.Source == TransactionSource.CreditCard, () => RuleFor(x => x.CardId).NotNull());
+        // AccountId is required regardless of source: the checking account for CheckingAccount
+        // rows, or the CreditCard's own id for CreditCard rows (it's an Account row via TPH).
+        RuleFor(x => x.AccountId).NotNull();
     }
 }

@@ -38,11 +38,6 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
             query = query.Where(t => t.AccountId == request.AccountId);
         }
 
-        if (request.CardId is not null)
-        {
-            query = query.Where(t => t.CardId == request.CardId);
-        }
-
         if (request.PeriodStart is not null)
         {
             query = query.Where(t => t.ExpectedDate >= request.PeriodStart);
@@ -94,6 +89,5 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         t.Recurrence.ToString(),
         t.CurrentInstallment,
         t.TotalInstallments,
-        t.AccountId,
-        t.CardId);
+        t.AccountId);
 }

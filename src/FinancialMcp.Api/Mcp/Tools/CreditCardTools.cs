@@ -167,8 +167,9 @@ public sealed class CreditCardTools(IMediator mediator)
 
         ## Behavior
         - Throws a not-found error if `creditCardId` doesn't match a registered credit card.
-        - Does not cascade to linked transactions — they keep their `cardId` reference;
-          consider that before deleting a credit card still in active use.
+        - Does not cascade to linked transactions — they keep their `accountId` reference
+          (a credit card's transactions use its own id as `accountId`); consider that before
+          deleting a credit card still in active use.
 
         ## Example
         ```json
