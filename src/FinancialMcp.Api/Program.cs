@@ -52,7 +52,7 @@ if (app.Environment.IsDevelopment()
 {
     using IServiceScope scope = app.Services.CreateScope();
     ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.EnsureDeletedAsync();
+    //await db.Database.EnsureDeletedAsync();
     await db.Database.MigrateAsync();
     //if (app.Configuration.GetValue("Hosting:ApplySampleFinancialDataAfterMigrations", false))
     //{

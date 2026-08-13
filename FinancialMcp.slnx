@@ -7,6 +7,7 @@
     <Project Path="src/FinancialMcp.Api/FinancialMcp.Api.csproj" />
     <Project Path="src/FinancialMcp.AppHost/FinancialMcp.AppHost.csproj" />
     <Project Path="src/FinancialMcp.Application/FinancialMcp.Application.csproj" />
+    <Project Path="src/FinancialMcp.Console/FinancialMcp.Console.csproj" Id="564e0595-a2bf-4288-88b3-e89b852cd217" />
     <Project Path="src/FinancialMcp.Domain/FinancialMcp.Domain.csproj" />
     <Project Path="src/FinancialMcp.Infrastructure.Auth/FinancialMcp.Infrastructure.Auth.csproj" Id="8207ffd5-9335-4385-be09-139cb0db72c2" />
     <Project Path="src/FinancialMcp.Infrastructure.Persistence/FinancialMcp.Infrastructure.Persistence.csproj" Id="864f3e1a-45a7-4515-9a2a-8aff1a6a7a70" />
