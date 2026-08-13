@@ -14,7 +14,7 @@ namespace FinancialMcp.Application.Statements.ImportStatement;
 /// any warnings.</remarks>
 /// <param name="db">Application database context used to add parsed transactions.</param>
 /// <param name="parser">Parser that converts CSV content and source information into transaction entities and collects parsing warnings.</param>
-public sealed class ImportStatementCommandHandler(IApplicationDbContext db, IStatementCsvParser parser)
+public sealed class ImportStatementCommandHandler(IApplicationDbContext db, IStatementCsvParser parser, ITransactionCategoryResolver categoryResolver)
     : IRequestHandler<ImportStatementCommand, ImportStatementResultDto>
 {
     public async Task<ImportStatementResultDto> Handle(ImportStatementCommand request, CancellationToken cancellationToken)
@@ -28,6 +28,7 @@ public sealed class ImportStatementCommandHandler(IApplicationDbContext db, ISta
 
         foreach (var transaction in transactions)
         {
+            await categoryResolver.ResolveAsync(transaction, cancellationToken);
             db.Transactions.Add(transaction);
         }
 

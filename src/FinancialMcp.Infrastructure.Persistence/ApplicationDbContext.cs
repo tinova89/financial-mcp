@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     : DbContext(options), IApplicationDbContext
 {
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<TransactionCategory> TransactionCategories => Set<TransactionCategory>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<CreditCard> CreditCards => Set<CreditCard>();
     public DbSet<BudgetGoal> BudgetGoals => Set<BudgetGoal>();
@@ -25,6 +26,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // bypass it via IgnoreQueryFilters(). CreditCard shares Account's filter via
         // EF Core TPH inheritance — it must not (and cannot) redeclare its own.
         modelBuilder.Entity<Transaction>().HasQueryFilter(t => !t.IsDeleted);
+        modelBuilder.Entity<TransactionCategory>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<Account>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<BudgetGoal>().HasQueryFilter(m => !m.IsDeleted);
 

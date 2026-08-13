@@ -1,5 +1,7 @@
 using System.Reflection;
 using FinancialMcp.Application.Common.Behaviors;
+using FinancialMcp.Application.Common.Interfaces;
+using FinancialMcp.Application.Common.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +34,8 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<ITransactionCategoryResolver, TransactionCategoryResolver>();
 
         return services;
     }

@@ -18,10 +18,11 @@ public sealed class CategoryTools(IMediator mediator)
 
         ## Behavior
         - Read-only.
-        - Categories are derived directly from transaction data — parsed from each
-          transaction's raw `Categoria-mãe/Subcategoria` string (split on `/`), not from a
-          separate managed category table. A category only appears here if at least one
-          transaction currently uses it.
+        - Categories are read from the persisted category table, but that table has no
+          create/update tool of its own — rows are only ever registered as a side effect of
+          creating/importing/updating a transaction (its raw `Categoria-mãe/Subcategoria`
+          string is split on `/` and get-or-created at that point). A category only appears
+          here if at least one transaction has used it.
         - Grouped by parent category, each with the distinct list of subcategories seen
           under it (a parent with no subcategory rows returns an empty subcategory list).
         - Both lists are ordered alphabetically.

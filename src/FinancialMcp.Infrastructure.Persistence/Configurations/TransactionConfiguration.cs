@@ -42,6 +42,14 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .HasForeignKey(t => t.AccountId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(t => t.Category)
+            .WithMany()
+            .HasForeignKey(t => t.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => t.CategoryId)
+            .HasDatabaseName("ix_transactions_category_id");
+
         // Speeds up get_budget_status (aggregation by parent category/month).
         builder.HasIndex(t => new { t.Status, t.Type })
             .HasDatabaseName("ix_transactions_status_type");

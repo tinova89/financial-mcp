@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 
-public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db)
+public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, ITransactionCategoryResolver categoryResolver)
     : IRequestHandler<UpdateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(UpdateTransactionCommand request, CancellationToken cancellationToken)
@@ -22,7 +22,13 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db)
         }
 
         if (request.Status is not null) t.Status = Enum.Parse<TransactionStatus>(request.Status);
-        if (request.RawCategory is not null) t.RawCategory = request.RawCategory;
+
+        if (request.RawCategory is not null)
+        {
+            t.RawCategory = request.RawCategory;
+            await categoryResolver.ResolveAsync(t, cancellationToken);
+        }
+
         if (request.Amount is not null) t.Amount = request.Amount.Value;
         if (request.ExpectedDate is not null) t.ExpectedDate = request.ExpectedDate.Value;
         if (request.ActualDate is not null) t.ActualDate = request.ActualDate;

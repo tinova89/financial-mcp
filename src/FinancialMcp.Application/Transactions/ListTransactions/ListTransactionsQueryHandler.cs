@@ -18,7 +18,10 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
     {
         // Include(Account) is required for GetReferenceMonthYear() below, which reads
         // Account.Kind to pick the right reference-date column.
-        var query = db.Transactions.AsNoTracking().Include(t => t.Account).AsQueryable();
+        var query = db.Transactions.AsNoTracking()
+            .Include(t => t.Account)
+            .Include(t => t.Category).ThenInclude(c => c.ParentCategory)
+            .AsQueryable();
 
         if (request.Type is not null)
         {

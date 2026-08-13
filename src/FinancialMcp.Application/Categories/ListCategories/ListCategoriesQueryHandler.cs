@@ -9,21 +9,18 @@ public sealed class ListCategoriesQueryHandler(IApplicationDbContext db)
 {
     public async Task<IReadOnlyList<CategoryDto>> Handle(ListCategoriesQuery request, CancellationToken cancellationToken)
     {
-        var rawCategories = await db.Transactions.AsNoTracking()
-            .Select(t => t.RawCategory)
-            .Distinct()
+        var categories = await db.TransactionCategories.AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        return rawCategories
-            .Select(FinancialMcp.Domain.ValueObjects.Category.Parse)
-            .GroupBy(c => c.ParentCategory)
-            .Select(g => new CategoryDto(
-                g.Key,
-                g.Where(c => c.Subcategory is not null)
-                 .Select(c => c.Subcategory!)
-                 .Distinct()
-                 .OrderBy(s => s)
-                 .ToList()))
+        return categories
+            .Where(c => c.ParentCategoryId is null)
+            .Select(parent => new CategoryDto(
+                parent.Name,
+                categories
+                    .Where(c => c.ParentCategoryId == parent.Id)
+                    .Select(c => c.Name)
+                    .OrderBy(s => s)
+                    .ToList()))
             .OrderBy(c => c.ParentCategory)
             .ToList();
     }

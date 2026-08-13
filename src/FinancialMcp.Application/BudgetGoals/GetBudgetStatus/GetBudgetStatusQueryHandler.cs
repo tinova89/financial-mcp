@@ -41,6 +41,7 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
         var candidates = await db.Transactions
             .AsNoTracking()
             .Include(t => t.Account)
+            .Include(t => t.Category).ThenInclude(c => c.ParentCategory)
             .Where(t => t.Status == TransactionStatus.Reconciled && t.Type == TransactionType.Expense)
             .ToListAsync(cancellationToken);
 

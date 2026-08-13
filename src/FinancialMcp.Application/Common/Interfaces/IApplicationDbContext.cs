@@ -10,6 +10,7 @@ namespace FinancialMcp.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<Transaction> Transactions { get; }
+    DbSet<TransactionCategory> TransactionCategories { get; }
     DbSet<Account> Accounts { get; }
     DbSet<CreditCard> CreditCards { get; }
     DbSet<BudgetGoal> BudgetGoals { get; }

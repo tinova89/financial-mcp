@@ -10,7 +10,7 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// transaction. Calculation rules (installments, billing cycle) don't apply here:
 /// each row already represents a concrete transaction (see CLAUDE.md > Mediator Pattern).
 /// </summary>
-public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
+public sealed class CreateTransactionCommandHandler(IApplicationDbContext db, ITransactionCategoryResolver categoryResolver)
     : IRequestHandler<CreateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
@@ -31,6 +31,8 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db)
             TotalInstallments = request.TotalInstallments,
             AccountId = request.AccountId
         };
+
+        await categoryResolver.ResolveAsync(transaction, cancellationToken);
 
         db.Transactions.Add(transaction);
 

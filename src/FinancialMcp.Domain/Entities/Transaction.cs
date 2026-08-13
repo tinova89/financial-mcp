@@ -21,7 +21,22 @@ public class Transaction : BaseEntity
     public decimal Amount { get; set; }
 
     public string RawCategory { get; set; } = default!; // "Categoria-mãe/Subcategoria" as it came from the statement
-    public Category Category => Category.Parse(RawCategory);
+
+    public Guid CategoryId { get; set; }
+
+    /// <summary>
+    /// Persisted category/subcategory this transaction belongs to. Resolved (get-or-created)
+    /// from RawCategory by ITransactionCategoryResolver whenever a transaction is created,
+    /// imported, or has its RawCategory changed.
+    /// </summary>
+    public TransactionCategory Category { get; set; } = default!;
+
+    /// <summary>Splits RawCategory into (ParentCategory, Subcategory) — see CLAUDE.md > Category/Subcategory.</summary>
+    public (string ParentCategory, string? Subcategory) SplitRawCategory()
+    {
+        var parsed = FinancialMcp.Domain.ValueObjects.Category.Parse(RawCategory);
+        return (parsed.ParentCategory, parsed.Subcategory);
+    }
 
     // Explicit dates (never string) — see CLAUDE.md > Code Conventions > Dates.
     public DateOnly ExpectedDate { get; set; }
