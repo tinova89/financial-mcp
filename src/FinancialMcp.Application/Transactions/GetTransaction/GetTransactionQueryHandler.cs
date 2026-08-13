@@ -13,6 +13,7 @@ public sealed class GetTransactionQueryHandler(IApplicationDbContext db)
     public async Task<TransactionDto> Handle(GetTransactionQuery request, CancellationToken cancellationToken)
     {
         var t = await db.Transactions.AsNoTracking()
+            .Include(x => x.Category).ThenInclude(c => c.ParentCategory)
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)
@@ -22,7 +23,7 @@ public sealed class GetTransactionQueryHandler(IApplicationDbContext db)
 
         return new TransactionDto(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
-            t.RawCategory, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
+            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId);
     }
 }

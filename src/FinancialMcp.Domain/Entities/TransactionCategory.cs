@@ -28,6 +28,12 @@ public sealed class TransactionCategory : BaseEntity
     public string? Subcategory => ParentCategory is null ? null : Name;
 
     /// <summary>
+    /// Reconstructs the "Categoria-mãe/Subcategoria" text in the same format Transaction.RawCategory
+    /// originally came in — used to answer with that shape without persisting RawCategory itself.
+    /// </summary>
+    public string FullName => ParentCategory is null ? Name : $"{ParentCategory.Name}/{Name}";
+
+    /// <summary>
     /// Same matching rule as Category.MatchesGoal (see CLAUDE.md > Category and subcategory):
     /// a goal registered with only the parent category matches any subcategory under it; a
     /// goal registered with a full subcategory requires an exact match.

@@ -20,9 +20,10 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
             .HasColumnType("numeric(14,2)")
             .IsRequired();
 
-        builder.Property(t => t.RawCategory)
-            .HasMaxLength(200)
-            .IsRequired();
+        // RawCategory is transient support data (the raw statement input used to resolve
+        // Category via ITransactionCategoryResolver) — never persisted. See CLAUDE.md >
+        // Category and subcategory / Transaction.RawCategory doc comment.
+        builder.Ignore(t => t.RawCategory);
 
         builder.Property(t => t.Description)
             .HasMaxLength(500)

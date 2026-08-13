@@ -8,8 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.Transactions.ListTransactions;
 
 /// <summary>
-/// Single handler for ListTransactionsQuery. Pure category calculation rule
-/// (parsing "Categoria-mãe/Subcategoria") delegated to the domain's Category value object.
+/// Single handler for ListTransactionsQuery. Category filtering/output goes through the
+/// persisted Category (TransactionCategory) relation — RawCategory is transient support
+/// data only (see Transaction.RawCategory doc comment).
 /// </summary>
 public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
     : IRequestHandler<ListTransactionsQuery, PagedResult<TransactionDto>>
@@ -50,8 +51,12 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
         if (request.ParentCategory is not null)
         {
-            // EF.Functions.Like avoids bringing everything into memory before filtering by parent category.
-            query = query.Where(t => EF.Functions.Like(t.RawCategory, $"{request.ParentCategory}%"));
+            // Filters via the Category relation (RawCategory isn't persisted — see
+            // TransactionConfiguration.Ignore) — matches whether the transaction's category
+            // *is* the parent (no subcategory) or is a subcategory under it.
+            query = query.Where(t =>
+                (t.Category.ParentCategoryId == null && t.Category.Name == request.ParentCategory) ||
+                (t.Category.ParentCategory != null && t.Category.ParentCategory.Name == request.ParentCategory));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -80,7 +85,7 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         t.Status.ToString(),
         t.Description,
         t.Amount,
-        t.RawCategory,
+        t.Category.FullName,
         t.ExpectedDate,
         t.ActualDate,
         t.ReconciledDate,

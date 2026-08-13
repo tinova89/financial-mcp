@@ -20,7 +20,13 @@ public class Transaction : BaseEntity
     /// <summary>Always decimal — never double/float (see CLAUDE.md > Code Conventions > Money).</summary>
     public decimal Amount { get; set; }
 
-    public string RawCategory { get; set; } = default!; // "Categoria-mãe/Subcategoria" as it came from the statement
+    /// <summary>
+    /// "Categoria-mãe/Subcategoria" as it came from the statement/caller — support-only,
+    /// never persisted (see TransactionConfiguration.Ignore). Used solely to resolve
+    /// CategoryId/Category via ITransactionCategoryResolver at write time; reads must go
+    /// through Category (e.g. Category.FullName), not this property.
+    /// </summary>
+    public string RawCategory { get; set; } = default!;
 
     public Guid CategoryId { get; set; }
 

@@ -23,10 +23,11 @@ public sealed record FinancialBank(
     public static FinancialBank Itau => new("341", "Itaú", "/images/itau.svg", "itau.svg");
     public static FinancialBank Nubank => new("260", "Nubank",  "/images/nubank.svg", "nubank.svg");
     public static FinancialBank Inter => new("077", "Inter", "/images/inter.svg", "inter.svg");
+    public static FinancialBank Sofisa => new("637", "Sofisa", "/images/sofisa.svg", "sofisa.svg");
     public static FinancialBank Wallet => new("307", "Wallet", "/images/wallet.svg", "wallet.svg");
     #endregion
 
-    public static IReadOnlyList<FinancialBank> All => [Itau, Nubank, Inter, Wallet];
+    public static IReadOnlyList<FinancialBank> All => [Itau, Nubank, Inter, Sofisa, Wallet];
 
     public static FinancialBank GetBank(string code) =>
         All.FirstOrDefault(b => b.BankCode == code)

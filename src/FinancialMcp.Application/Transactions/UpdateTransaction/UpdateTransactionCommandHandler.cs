@@ -14,6 +14,7 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, IT
     public async Task<TransactionDto> Handle(UpdateTransactionCommand request, CancellationToken cancellationToken)
     {
         var t = await db.Transactions
+            .Include(x => x.Category).ThenInclude(c => c.ParentCategory)
             .FirstOrDefaultAsync(x => x.Id == request.TransactionId, cancellationToken);
 
         if (t is null)
@@ -39,7 +40,7 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, IT
 
         return new TransactionDto(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
-            t.RawCategory, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
+            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId);
     }
 }

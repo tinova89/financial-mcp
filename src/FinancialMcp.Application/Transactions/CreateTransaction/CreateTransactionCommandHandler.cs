@@ -44,7 +44,7 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db, IT
             transaction.Status.ToString(),
             transaction.Description,
             transaction.Amount,
-            transaction.RawCategory,
+            transaction.Category.FullName,
             transaction.ExpectedDate,
             transaction.ActualDate,
             transaction.ReconciledDate,

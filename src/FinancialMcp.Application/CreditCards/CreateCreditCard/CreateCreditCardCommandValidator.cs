@@ -19,9 +19,9 @@ public sealed class CreateCreditCardCommandValidator : AbstractValidator<CreateC
             .WithMessage(x => $"BaseCurrencyCode \"{x.BaseCurrencyCode}\" não é reconhecido. Moedas suportadas: " +
                 $"{string.Join(", ", FinancialCurrency.All.Select(c => c.CurrencyCode))}.");
 
-        // Capped at 28 so the day is valid in every month — no "roll to next month" edge case to model.
-        RuleFor(x => x.ClosingDay).InclusiveBetween((byte)1, (byte)28);
-        RuleFor(x => x.DueDay).InclusiveBetween((byte)1, (byte)28);
+        // Capped at 31, maximum for month; when the month is less than 31, consider the last day of the month — no "roll to next month" edge case to model.
+        RuleFor(x => x.ClosingDay).InclusiveBetween((byte)1, (byte)31);
+        RuleFor(x => x.DueDay).InclusiveBetween((byte)1, (byte)31);
 
         RuleFor(x => x.PaymentAccountId).NotEmpty();
     }
