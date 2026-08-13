@@ -23,6 +23,7 @@ public sealed class StatementCsvParser : IStatementCsvParser
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             Delimiter = ";",
+            NewLine = "|",
             HasHeaderRecord = true,
             MissingFieldFound = null,
             BadDataFound = null,

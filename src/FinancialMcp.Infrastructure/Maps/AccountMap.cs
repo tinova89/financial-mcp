@@ -79,6 +79,14 @@ internal sealed class TransactionStatusConverter : DefaultTypeConverter
 
 internal sealed class AmountConverter : DefaultTypeConverter
 {
+    // Statements use comma as the decimal separator (e.g. "-70,00") and dot as the
+    // thousands separator (pt-BR formatting), not InvariantCulture's dot-decimal.
+    private static readonly NumberFormatInfo DecimalCommaFormat = new()
+    {
+        NumberDecimalSeparator = ",",
+        NumberGroupSeparator = "."
+    };
+
     public override object ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
     {
         if (text is null)
@@ -86,7 +94,7 @@ internal sealed class AmountConverter : DefaultTypeConverter
             throw new FormatException("Campo 'Valor' ausente.");
         }
 
-        return decimal.Parse(text, NumberStyles.Number, CultureInfo.InvariantCulture);
+        return decimal.Parse(text, NumberStyles.Number, DecimalCommaFormat);
     }
 }
 

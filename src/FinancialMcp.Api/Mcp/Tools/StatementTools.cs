@@ -14,8 +14,9 @@ public sealed class StatementTools(IMediator mediator)
 
         ## Expected CSV format
         - Separator: `;`
+        - NewLine: `|`
         - Date format: `dd/MM/yyyy`
-        - Decimal separator: dot (`.`)
+        - Decimal separator: comma (`,`)
         - Columns read: `Valor`, `Tipo`, `Status`, `Categoria`, `Descrição`/`Descricao`,
           `Data prevista`, `Data efetiva`, and — depending on whether `accountId` refers to
           a checking account or a credit card — either `Data Conciliado`, or `Venc. Fatura` /
