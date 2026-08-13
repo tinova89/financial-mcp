@@ -53,5 +53,19 @@ public sealed class StatementTools(IMediator mediator)
     public Task<ImportStatementResultDto> ImportStatementAsync(
         string csvContent, Guid accountId,
         CancellationToken cancellationToken = default) =>
-        mediator.Send(new ImportStatementCommand(accountId, csvContent), cancellationToken);
+        mediator.Send(new ImportStatementCommand(accountId, NormalizeLineEndings(csvContent)), cancellationToken);
+
+    /// <summary>
+    /// Some MCP clients serialize multi-line csvContent with the literal two-character
+    /// sequences "\r"/"\n" instead of real line breaks, which CsvHelper then reads as a
+    /// single row. Turn both the literal escape sequences and any real CR/LF variant into
+    /// a single consistent "\n" before the content reaches the parser.
+    /// </summary>
+    private static string NormalizeLineEndings(string csvContent) =>
+        csvContent
+            .Replace("\\r\\n", "\n")
+            .Replace("\\n", "\n")
+            .Replace("\\r", "\n")
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n");
 }
