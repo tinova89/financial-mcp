@@ -1,12 +1,10 @@
 using System.ComponentModel;
-using System.Transactions;
 using FinancialMcp.Application.Transactions.CreateTransaction;
 using FinancialMcp.Application.Transactions.DeleteTransaction;
 using FinancialMcp.Application.Transactions.GetTransaction;
 using FinancialMcp.Application.Transactions.ListTransactions;
 using FinancialMcp.Application.Transactions.ReconcileTransaction;
 using FinancialMcp.Application.Transactions.UpdateTransaction;
-using FinancialMcp.Domain.Enums;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -26,16 +24,18 @@ public sealed class TransactionTools(IMediator mediator)
         filters, paginated.
 
         ## Parameters
-        - **type** — Filter by `Expense`, `Income`, `Transfer`, or `Payment`. Optional.
-        - **status** — Filter by `Reconciled`, `Scheduled`, or `Unreconciled`. Optional.
-        - **parentCategory** — Filter to rows whose category starts with this parent (e.g.
+        - **periodStart** / **periodEnd** — Inclusive `ExpectedDate` range. Required.
+        - **type** — Filter by `"Expense"`, `"Income"`, `"Transfer"`, or `"Payment"`.
+          Optional.
+        - **status** — Filter by `"Reconciled"`, `"Scheduled"`, or `"Unreconciled"`.
+          Optional.
+        - **category** — Filter to rows whose category starts with this parent (e.g.
           `"Moradia"` matches both `Moradia` and `Moradia/Seguro`). Optional.
         - **subcategory** — Filter to rows with this exact subcategory. Optional; applied
           in memory alongside `parentCategory`.
         - **accountId** — `Guid` matching either a checking account (for its own
           transactions) or a credit card's own id (for that card's transactions) — both
           use the same `accountId` field on a transaction. Optional.
-        - **periodStart** / **periodEnd** — Inclusive `ExpectedDate` range. Optional.
         - **year** / **month** — Filter by the transaction's *reference* month/year
           (`ReconciledDate` for checking-account rows, `InvoiceDueDate` for credit-card
           rows — see `get_budget_status` for why these differ). Optional.
@@ -44,27 +44,28 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Behavior
         - Read-only; ordered by `expectedDate` descending.
-        - All filters are optional and combine with AND semantics.
+        - `periodStart`/`periodEnd` are required; every other filter is optional. All
+          provided filters combine with AND semantics.
         - Soft-deleted transactions are excluded automatically.
 
         ## Example
         ```json
-        { "status": "Unreconciled", "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
+        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": "Unreconciled", "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
         ```
 
         ## Returns
         A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages).
         """)]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
-        TransactionType? type = null, Domain.Enums.TransactionStatus? status = null,
-        string? parentCategory = null, string? subcategory = null,
+        DateOnly periodStart, DateOnly periodEnd,
+        string? type = null, string? status = null,
+        string? category = null, string? subcategory = null,
         Guid? accountId = null,
-        DateOnly? periodStart = null, DateOnly? periodEnd = null,
         int? year = null, int? month = null, int page = 1, int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         mediator.Send(new ListTransactionsQuery(
-            type, status, parentCategory, subcategory, accountId,
-            periodStart, periodEnd, year, month, page, pageSize), cancellationToken);
+            periodStart, periodEnd, type, status, category, subcategory, accountId,
+            year, month, page, pageSize), cancellationToken);
 
     [McpServerTool(Name = "get_transaction"), Description(
         """

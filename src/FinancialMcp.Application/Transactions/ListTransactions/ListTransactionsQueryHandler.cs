@@ -26,12 +26,14 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
         if (request.Type is not null)
         {
-            query = query.Where(t => t.Type == request.Type);
+            var type = Enum.Parse<TransactionType>(request.Type, ignoreCase: true);
+            query = query.Where(t => t.Type == type);
         }
 
         if (request.Status is not null)
         {
-            query = query.Where(t => t.Status == request.Status);
+            var status = Enum.Parse<TransactionStatus>(request.Status, ignoreCase: true);
+            query = query.Where(t => t.Status == status);
         }
 
         if (request.AccountId is not null)
@@ -39,15 +41,7 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
             query = query.Where(t => t.AccountId == request.AccountId);
         }
 
-        if (request.PeriodStart is not null)
-        {
-            query = query.Where(t => t.ExpectedDate >= request.PeriodStart);
-        }
-
-        if (request.PeriodEnd is not null)
-        {
-            query = query.Where(t => t.ExpectedDate <= request.PeriodEnd);
-        }
+        query = query.Where(t => t.ExpectedDate >= request.PeriodStart && t.ExpectedDate <= request.PeriodEnd);
 
         if (request.ParentCategory is not null)
         {
@@ -71,8 +65,8 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         // reference MonthYear calculated in memory (Data Conciliado vs. Venc. Fatura).
         var filteredItems = transactions
             .Where(t => request.Subcategory is null || t.Category.Subcategory == request.Subcategory)
-            .Where(t => request.Year is null || t.GetReferenceMonthYear()?.Year == request.Year)
-            .Where(t => request.Month is null || t.GetReferenceMonthYear()?.Month == request.Month)
+            .Where(t => (request.Year is null || request.Year <= 0) || t.GetReferenceMonthYear()?.Year == request.Year)
+            .Where(t => (request.Month is null || request.Month <= 0) || t.GetReferenceMonthYear()?.Month == request.Month)
             .Select(Map)
             .ToList();
 
