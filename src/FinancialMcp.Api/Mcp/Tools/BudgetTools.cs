@@ -28,14 +28,17 @@ public sealed class BudgetTools(IMediator mediator)
         - The reference month is `ReconciledDate` for checking-account transactions and
           `InvoiceDueDate` for credit-card transactions (`Transaction.GetReferenceMonthYear()`,
           driven by `Account.Kind`, not a stored transaction flag).
-        - Aggregation is by parent category by default, or by the exact subcategory if the
-          goal was registered with one (e.g. a goal on `Moradia` sums all `Moradia/*` rows;
-          a goal on `Moradia/Seguro` only sums that exact subcategory).
-        - Each result includes a per-subcategory breakdown for extra visibility, even though
-          only the parent-level (or exact) match drives `Gasto_Real`.
-        - Categories with **no** registered goal for this year/month are omitted entirely —
+        - A goal always targets a parent category (never a subcategory) and sums every
+          subcategory under it (e.g. a goal on `Moradia` sums all `Moradia/*` rows).
+        - Each result includes a per-subcategory breakdown for extra visibility.
+        - Per category, the goal in effect for the requested month is picked via
+          `BudgetGoal.ResolveEffective`: a `OneTime` goal matches only its own year/month; a
+          `Monthly` goal applies from its own year/month onward, until a later `Monthly` row
+          for the same category supersedes it. A `OneTime` row wins over a `Monthly` one for
+          the exact month it targets.
+        - Categories with **no** goal in effect for this year/month are omitted entirely —
           this tool never invents a goal. Use `list_transactions` with category filters to
-          see spending on categories that don't have a goal.
+          see spending on categories that don't have one.
         - `remainingBudget` (Saldo_Meta) = `budgetAmount - actualSpent` (can go negative when over budget).
         - `utilizationPercentage` (% Utilizado) = `actualSpent / budgetAmount`, or `null` if `budgetAmount` is 0.
 

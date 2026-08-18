@@ -106,9 +106,8 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
 
 ### Category and subcategory
 - The `Categoria` column in the statements (CC and CD) is treated as `Categoria-mãe/Subcategoria`, split on the `/` character when present.
-- When aggregating for a goal registered with only the parent category (e.g. `Moradia`), sum **all** rows whose parent category is `Moradia`, regardless of subcategory.
+- A `BudgetGoal` always references a parent `TransactionCategory` (`RawCategoryId`), never a subcategory — aggregation for a goal (e.g. `Moradia`) sums **all** rows whose parent category is `Moradia`, regardless of subcategory.
 - Also generate a breakdown by subcategory (secondary, doesn't create its own goal).
-- If the user registers the goal with a full subcategory already (e.g. `Moradia/Seguro`), the calculation becomes exact for that specific subcategory.
 
 ### Budget goals (`get_budget_status`)
 1. **Status filter** (default, unless stated otherwise): only `Status = Conciliado`. Ignore `Agendado` (checking account) and `Nconciliado` (credit card).
@@ -116,11 +115,15 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
 3. **Month reference date (`Mês_Ano`)**:
    - Checking account (when `Conciliado`): use the **"Data Conciliado"** column.
    - Credit card: use the **"Venc. Fatura"** column (not "Data efetiva") — reflects the month in which the amount actually impacts the payment account, honoring the rule of rolling to the next business day when the due date falls on a weekend.
-4. **Formulas**:
-   - `Gasto_Real` (default, unless stated otherwise) = sum of the absolute value of reconciled expenses in the same parent category (or full category, if the goal specifies a subcategory) in the same `Mês_Ano` (CC + CD combined).
+4. **Goal period (`BudgetGoal.Period`)**: which registered goal row is "in effect" for a given category/month, per `BudgetGoal.ResolveEffective`:
+   - `OneTime` — matches only its own `PeriodReference` (Year/Month); no automatic repetition.
+   - `Monthly` — applies from its own `PeriodReference` onward, until a later `Monthly` row for the same category (a later `PeriodReference`) supersedes it.
+   - A `OneTime` row wins over a `Monthly` one for the exact month it targets.
+5. **Formulas**:
+   - `Gasto_Real` (default, unless stated otherwise) = sum of the absolute value of reconciled expenses in the same parent category in the same `Mês_Ano` (CC + CD combined).
    - `Saldo_Meta` = `Meta_Valor` − `Gasto_Real`.
    - `% Utilizado` = `Gasto_Real` / `Meta_Valor`.
-5. Categories without a registered goal don't appear in the budget goal sheet/query (but can appear in a separate report if requested via `list_transactions`).
+6. Categories without a goal in effect for the requested month don't appear in the budget goal sheet/query (but can appear in a separate report if requested via `list_transactions`).
 
 ## Code Conventions
 

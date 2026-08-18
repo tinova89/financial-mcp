@@ -15,6 +15,8 @@ namespace FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
 ///  3. Mês_Ano: "Data Conciliado" (checking account) / "Venc. Fatura" (credit card).
 ///  4. Gasto_Real / Saldo_Meta / % Utilizado.
 ///  5. Categories without a goal don't appear in the result.
+///  6. Per category, the goal in effect for the requested month is picked via
+///     BudgetGoal.ResolveEffective (exact OneTime match, else the latest applicable Monthly goal).
 /// </summary>
 public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetBudgetStatusQuery, IReadOnlyList<BudgetStatusDto>>
@@ -23,10 +25,19 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
     {
         var targetMonthYear = new MonthYear(request.Year, request.Month);
 
-        var budgetGoals = await db.BudgetGoals
+        // Brings in every goal ever registered per category, since a Monthly goal can apply to
+        // a month after its own PeriodReference — see BudgetGoal.ResolveEffective.
+        var allGoals = await db.BudgetGoals
             .AsNoTracking()
-            .Where(m => m.Year == request.Year && m.Month == request.Month)
+            .Include(m => m.RawCategory)
             .ToListAsync(cancellationToken);
+
+        var budgetGoals = allGoals
+            .GroupBy(m => m.RawCategoryId)
+            .Select(g => BudgetGoal.ResolveEffective(g, request.Year, request.Month))
+            .Where(g => g is not null)
+            .Select(g => g!)
+            .ToList();
 
         if (budgetGoals.Count == 0)
         {
@@ -53,10 +64,10 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
 
         foreach (var goal in budgetGoals)
         {
-            var goalCategory = goal.Category;
-
+            // BudgetGoal.RawCategory is always a parent category (see BudgetGoal doc comment),
+            // so every subcategory under it counts toward Gasto_Real — no exact-subcategory match.
             var categoryExpenses = monthExpenses
-                .Where(t => t.Category.MatchesGoal(goalCategory))
+                .Where(t => string.Equals(t.Category.ParentCategoryName, goal.RawCategory.Name, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             var actualSpent = categoryExpenses.Sum(t => Math.Abs(t.Amount));
@@ -70,7 +81,7 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
                 .ToList();
 
             result.Add(new BudgetStatusDto(
-                goal.RawCategory,
+                goal.RawCategory.Name,
                 goal.BudgetAmount,
                 actualSpent,
                 remainingBudget,

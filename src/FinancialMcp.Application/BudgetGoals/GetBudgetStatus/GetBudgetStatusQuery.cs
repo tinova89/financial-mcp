@@ -5,7 +5,8 @@ namespace FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
 /// <summary>
 /// Corresponds to the MCP tool `get_budget_status`. Calculates Gasto_Real, Saldo_Meta and
 /// % Utilizado by category/month, per CLAUDE.md > Business Rules > Budget
-/// goals. Year/Month are required; without them the query would be ambiguous.
+/// goals. Year/Month are required; without them the query would be ambiguous. Per category,
+/// the applicable goal for that Year/Month is resolved via BudgetGoal.ResolveEffective.
 /// </summary>
 public sealed record GetBudgetStatusQuery(int Year, int Month) : IRequest<IReadOnlyList<BudgetStatusDto>>;
 
