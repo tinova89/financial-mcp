@@ -9,7 +9,7 @@ A financial **MCP Server** (Model Context Protocol), exposed via a **custom conn
 - **Checking Account (CC)** — bank statements
 - **Credit Card (CD)** — card statements (Nubank, Bradesco, Sofisa, and future ones)
 
-The MCP also exposes tools for **budget goals** (`Meta_Valor` per category/month) and **balance projection**, applying the business rules described in the [Business Rules](#financial-domain-business-rules) section below — these rules are the source of truth for any calculation logic implemented in the backend and **must** be kept in sync with the code's actual behavior.
+The MCP also exposes tools for **budget goals** (`Meta_Valor` per category/month), applying the business rules described in the [Business Rules](#financial-domain-business-rules) section below — these rules are the source of truth for any calculation logic implemented in the backend and **must** be kept in sync with the code's actual behavior.
 
 Built with:
 - **Backend:** .NET 10, orchestrated via .NET Aspire
@@ -74,7 +74,6 @@ The Postgres connection string is injected by Aspire (`ConnectionStrings__financ
   - `reconcile_transaction` — marks a transaction as `Conciliado` (checking account) or the equivalent for credit card.
   - `list_categories` — lists parent categories and subcategories in use (parsed from `Categoria-mãe/Subcategoria`).
   - `get_budget_status` — calculates `Gasto_Real`, `Saldo_Meta`, and `% Utilizado` per category/month, per `metas_orcamento.csv` (see rules below).
-  - `get_balance_projection` — generates the consolidated balance projection (`projecao_saldo_contas_completo.csv`), applying the billing cycle, installments, and fixed entries.
   - `import_statement` — imports a new CSV statement (checking account or credit card) into the database.
   - `list_accounts`/`get_account`/`create_account`/`update_account`/`delete_account` — CRUD for financial accounts (checking, investment, wallet, etc.); never returns/operates on credit cards (see below).
   - `list_credit_cards`/`get_credit_card`/`create_credit_card`/`update_credit_card`/`delete_credit_card` — CRUD for credit cards. A `CreditCard` is a kind of `Account` (EF Core Table-Per-Hierarchy, same `accounts` table) with its own `ClosingDay`/`DueDay`/`PaymentAccountId`; its `Kind` is always forced to `Credit` and is never a settable parameter.
@@ -90,7 +89,7 @@ The Postgres connection string is injected by Aspire (`ConnectionStrings__financ
 - **Provider:** EF Core with `Npgsql.EntityFrameworkCore.PostgreSQL`, `DbContext` in `FinancialMcp.Infrastructure`.
 - **Schema/Migrations:** all EF Core migrations are versioned under `FinancialMcp.Infrastructure/Migrations`; never edit a migration already applied to a shared environment — create a new one.
 - **Types:** map `Valor`/`Meta_Valor`/`Gasto_Real`/`Saldo_Meta` as `numeric` (never `double precision`); dates (`Data prevista`, `Data efetiva`, `Data Conciliado`, `Venc. Fatura`) as `date`/`timestamptz` as appropriate, never `text`.
-- **Indexes:** ensure an index on `(Mês_Ano, CategoriaMae)` and on `(Status, Tipo)` to speed up `get_budget_status` aggregations; an index on `Cartão`/`ParcelaTotal` for `get_balance_projection` queries.
+- **Indexes:** ensure an index on `(Mês_Ano, CategoriaMae)` and on `(Status, Tipo)` to speed up `get_budget_status` aggregations.
 - **Soft delete:** `delete_transaction` sets a `DeletedAt`/`IsDeleted` column; a global query filter on the `DbContext` excludes deleted records from all queries by default (explicit administrative queries can bypass the filter via `IgnoreQueryFilters()`).
 - **Connection string:** always via Aspire service discovery/`ConnectionStrings`, never hardcoded (see [Common Commands](#common-commands)).
 
@@ -103,7 +102,7 @@ The Postgres connection string is injected by Aspire (`ConnectionStrings__financ
 
 ## Financial Domain Business Rules
 
-These rules **govern** the behavior of the query and calculation MCP tools (`get_budget_status`, `get_balance_projection`, `list_transactions`, etc.). Any behavior change in the code must keep this document up to date.
+These rules **govern** the behavior of the query and calculation MCP tools (`get_budget_status`, `list_transactions`, etc.). Any behavior change in the code must keep this document up to date.
 
 ### Category and subcategory
 - The `Categoria` column in the statements (CC and CD) is treated as `Categoria-mãe/Subcategoria`, split on the `/` character when present.
@@ -123,20 +122,13 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
    - `% Utilizado` = `Gasto_Real` / `Meta_Valor`.
 5. Categories without a registered goal don't appear in the budget goal sheet/query (but can appear in a separate report if requested via `list_transactions`).
 
-### Credit card — billing cycle, installments, and projection (`get_balance_projection`)
-1. **Billing cycle**: purchases up to the closing date go into the current month's bill (due the following month); purchases after the closing date only go into the next bill. Use the **"Venc. Fatura"** column (when present) as the date that actually impacts the payment account's balance — never the purchase's "Data prevista".
-2. **Installment entries**: identified by `Repetição = "Parcelado"` and the `Parcela Atual`/`Parcela Total` columns (e.g. `6/12`). Each statement row already represents a specific installment — don't recalculate or duplicate future installments. When projecting future months not yet present in the statement, generate the remaining installments (`parcela_atual+1` through `parcela_total`) with the due date shifted by +1 month per row, the same amount, the same base description (without the `N/M` suffix), and the same Card/Account.
-3. **Fixed monthly entries**: `Repetição = "Fixo Mês"` — repeat the same amount every month on the same due date until an end is indicated.
-4. **Consolidation into the account balance**: the card statement must **not** be added directly to the checking account balance. The bill's total amount (sum of entries with "Venc. Fatura" in the same month) must appear as a single "Pagamento de cartão" entry in the checking account, on the due date, debited from the "Conta" linked to the card. If the due date falls on a Saturday/Sunday, use the next business day.
-5. **Status**: `Conciliado` = already processed/confirmed; `Nconciliado` = expected, still subject to amount/date changes until the bill closes.
-
 ## Code Conventions
 
 - **C#:** Nullable reference types enabled, file-scoped namespaces, primary constructors when they improve clarity.
 - **Async:** all I/O-bound methods are `async`/`await`; `Async` suffix.
 - **DTOs:** never expose domain entities directly via MCP/SignalR/REST — map to DTOs/records.
 - **Money:** use `decimal` (never `double`/`float`) for `Valor`, `Meta_Valor`, `Gasto_Real`, `Saldo_Meta`.
-- **Dates:** treat `Data prevista`, `Data efetiva`, `Data Conciliado`, and `Venc. Fatura` as explicit date types (not string); centralize the "next business day" logic in a single helper, reused by `get_balance_projection` and `get_budget_status`.
+- **Dates:** treat `Data prevista`, `Data efetiva`, `Data Conciliado`, and `Venc. Fatura` as explicit date types (not string); centralize the "next business day" logic in a single helper, reused by `get_budget_status`.
 - **Category/Subcategory:** centralize the `Categoria-mãe/Subcategoria` parsing in a single helper/value object, reused by every MCP tool that aggregates by category.
 - **Validation:** FluentValidation for request/command validation in `FinancialMcp.Application`, applied via a MediatR pipeline behavior (see below), including statement format validation on import (`import_statement`).
 - **Naming:** methods in PascalCase on the C# side, camelCase on the client side (`ReceiveMessage` ↔ `receiveMessage`).
@@ -145,7 +137,7 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
 
 All MCP tools and REST endpoints must be **thin**: they only build the `IRequest`/`IRequest<TResponse>` and call `IMediator.Send(...)` (or `Publish` for notifications). No business rule should live in the MCP tool/handler or in the controller — the logic belongs to the MediatR handlers in `FinancialMcp.Application`.
 
-- **Explicit CQRS:** always separate into **Commands** (writes: `create_transaction`, `update_transaction`, `delete_transaction`, `reconcile_transaction`, `import_statement`) and **Queries** (reads: `list_transactions`, `get_transaction`, `list_categories`, `get_budget_status`, `get_balance_projection`).
+- **Explicit CQRS:** always separate into **Commands** (writes: `create_transaction`, `update_transaction`, `delete_transaction`, `reconcile_transaction`, `import_statement`) and **Queries** (reads: `list_transactions`, `get_transaction`, `list_categories`, `get_budget_status`).
 - **Feature-based organization:** group each request + handler + validator (+ response DTO) in the same feature folder, not in loose generic `Commands/`, `Queries/`, `Handlers/` folders:
   ```
   FinancialMcp.Application/
@@ -181,11 +173,8 @@ All MCP tools and REST endpoints must be **thin**: they only build the `IRequest
 
 - Unit test business rules in isolation from the handlers/MCP tools (extract them into services; tools/handlers should stay thin).
 - Specifically cover with tests:
-  - Calculation of remaining installments when projecting future months.
-  - Billing cycle closing/due date, including rolling to the next business day on weekends.
   - `Gasto_Real` aggregation by parent category vs. full subcategory.
   - Exclusion of `Transferência`, `Pagamento`, and `Receita` from the budget goal calculation.
-  - Consolidation of the single "Pagamento de cartão" entry in the checking account, avoiding duplicate spending.
 - Use `TestServer` + a real MCP client (or equivalent) for integration tests of the exposed tools.
 - Frontend (if any): React Testing Library for components, mocking the MCP/SignalR connection instead of opening real sockets.
 
@@ -204,7 +193,7 @@ This `CLAUDE.md` is the entry point, but it doesn't need to hold everything — 
 
 - Don't hardcode ports/URLs — let Aspire service discovery and `launchSettings.json`/`appsettings.json` handle that.
 - Don't bypass the DTO layer to send EF Core entities over the network.
-- Don't implement budget goal/balance projection calculations that diverge from the rules described in [Business Rules](#financial-domain-business-rules) without first updating that section.
+- Don't implement budget goal calculations that diverge from the rules described in [Business Rules](#financial-domain-business-rules) without first updating that section.
 - Don't run `delete_transaction` (or any destructive operation) without explicit confirmation from the caller.
 
 ## Open Questions / TODO

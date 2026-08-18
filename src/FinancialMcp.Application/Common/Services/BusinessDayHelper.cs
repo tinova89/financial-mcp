@@ -1,9 +1,9 @@
 namespace FinancialMcp.Application.Common.Services;
 
 /// <summary>
-/// Single helper for "next business day", reused by GetBalanceProjection and
-/// GetBudgetStatus (see CLAUDE.md > Code Conventions > Dates). Considers only
-/// weekends — national/local holidays are out of scope for the MVP.
+/// Single helper for "next business day", used by GetBudgetStatus (see CLAUDE.md >
+/// Code Conventions > Dates). Considers only weekends — national/local holidays are
+/// out of scope for the MVP.
 /// </summary>
 public static class BusinessDayHelper
 {

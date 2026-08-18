@@ -6,7 +6,7 @@ namespace FinancialMcp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// See CLAUDE.md > Persistence (Postgres): Amount as numeric, dates as
-/// date/timestamptz, indexes to speed up get_budget_status/get_balance_projection.
+/// date/timestamptz, indexes to speed up get_budget_status.
 /// </summary>
 public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 {
@@ -58,7 +58,7 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
         builder.HasIndex(t => t.ReconciledDate)
             .HasDatabaseName("ix_transactions_reconciled_date");
 
-        // Speeds up get_balance_projection (installments/card statement cycle) — AccountId
+        // Speeds up installment/card-statement-cycle lookups by account — AccountId
         // identifies the specific card for credit-card-sourced transactions too, since a
         // CreditCard's own id is what's stored there (see Transaction.AccountId doc).
         builder.HasIndex(t => new { t.AccountId, t.TotalInstallments })

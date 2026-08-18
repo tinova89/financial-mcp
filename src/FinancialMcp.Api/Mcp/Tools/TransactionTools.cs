@@ -191,8 +191,8 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
-        - Deleting a transaction does not adjust any related budget goal or projection —
-          re-run `get_budget_status`/`get_balance_projection` afterwards if needed.
+        - Deleting a transaction does not adjust any related budget goal —
+          re-run `get_budget_status` afterwards if needed.
 
         ## Example
         ```json
