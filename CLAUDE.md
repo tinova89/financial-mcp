@@ -74,6 +74,7 @@ The Postgres connection string is injected by Aspire (`ConnectionStrings__financ
   - `reconcile_transaction` — marks a transaction as `Conciliado` (checking account) or the equivalent for credit card.
   - `list_categories` — lists parent categories and subcategories in use (parsed from `Categoria-mãe/Subcategoria`).
   - `get_budget_status` — calculates `Gasto_Real`, `Saldo_Meta`, and `% Utilizado` per category/month, per `metas_orcamento.csv` (see rules below).
+  - `create_category_budget` — registers a budget goal (`Meta_Valor`) for a parent category and calendar month (`Monthly` or `OneTime`, see rules below); rejected if the category is a subcategory or a goal already exists for that category/month.
   - `import_statement` — imports a new CSV statement (checking account or credit card) into the database.
   - `list_accounts`/`get_account`/`create_account`/`update_account`/`delete_account` — CRUD for financial accounts (checking, investment, wallet, etc.); never returns/operates on credit cards (see below).
   - `list_credit_cards`/`get_credit_card`/`create_credit_card`/`update_credit_card`/`delete_credit_card` — CRUD for credit cards. A `CreditCard` is a kind of `Account` (EF Core Table-Per-Hierarchy, same `accounts` table) with its own `ClosingDay`/`DueDay`/`PaymentAccountId`; its `Kind` is always forced to `Credit` and is never a settable parameter.

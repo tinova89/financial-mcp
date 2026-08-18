@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using FinancialMcp.Application.BudgetGoals.CreateCategoryBudget;
 using FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -55,4 +57,49 @@ public sealed class BudgetTools(IMediator mediator)
     public Task<IReadOnlyList<BudgetStatusDto>> GetBudgetStatusAsync(
         int year, int month, CancellationToken cancellationToken = default) =>
         mediator.Send(new GetBudgetStatusQuery(year, month), cancellationToken);
+
+    [McpServerTool(Name = "create_category_budget"), Description(
+        """
+        Registers a budget goal (Meta_Valor) for a parent category and calendar month.
+
+        ## Parameters
+        - **categoryId** — `Guid` of an existing parent `TransactionCategory`. Required.
+          Must reference a parent category, never a subcategory (rejected by validation
+          otherwise) — see CLAUDE.md > Category and subcategory.
+        - **amount** — Budget amount for the category, in `currencyCode`. Must be greater
+          than 0. Required.
+        - **currencyCode** — ISO currency code. Supported values: `BRL`, `USD`, `BTC`. An
+          unrecognized code is rejected by validation before persisting.
+        - **period** — `Monthly` or `OneTime`. Required.
+          - `Monthly` applies from `year`/`month` onward, until a later `Monthly` goal for
+            the same category (a later `year`/`month`) supersedes it.
+          - `OneTime` applies only to the exact `year`/`month` given, with no repetition.
+        - **year** / **month** — The goal's own reference month (its `PeriodReference`).
+          Required.
+
+        ## Not a parameter here
+        - There's no way to discover a `categoryId` through another MCP tool yet
+          (`list_categories` currently returns category names, not ids) — until that's
+          added, the caller needs the id from another source (e.g. direct data access).
+
+        ## Behavior
+        - Non-destructive write; no confirmation is required.
+        - Throws a not-found error if `categoryId` doesn't match a registered category.
+        - Rejected by validation if `categoryId` references a subcategory, or if a goal
+          already exists for the same category/year/month (one goal per category/month).
+
+        ## Example
+        ```json
+        { "categoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "amount": 1000.00,
+          "currencyCode": "BRL", "period": "OneTime", "year": 2026, "month": 8 }
+        ```
+
+        ## Returns
+        The created `BudgetGoalDto` (id, categoryId, categoryName, amount, currencyCode,
+        period, year, month).
+        """)]
+    public Task<BudgetGoalDto> CreateCategoryBudgetAsync(
+        Guid categoryId, decimal amount, string currencyCode, BudgetPeriodType period, int year, int month,
+        CancellationToken cancellationToken = default) =>
+        mediator.Send(new CreateCategoryBudgetCommand(categoryId, amount, currencyCode, period, year, month), cancellationToken);
 }
