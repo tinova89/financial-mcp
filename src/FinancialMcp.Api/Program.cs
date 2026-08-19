@@ -47,6 +47,7 @@ builder.Services
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequireGroupHeaderMiddleware>();
 
 app.MapDefaultEndpoints(); // "/health", "/alive" — see ServiceDefaults.
 

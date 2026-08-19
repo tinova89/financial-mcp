@@ -12,6 +12,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.HasKey(c => c.Id);
         builder.Property(c => c.DisplayName).HasMaxLength(200).IsRequired();
         builder.Property(c => c.BankCode).HasMaxLength(200).IsRequired();
+        builder.Property(c => c.Group).HasMaxLength(50).IsRequired();
 
         // Kind is computed from the entity's own runtime type (Account vs CreditCard, i.e. the
         // "AccountType" discriminator below) — never persisted as its own column.
@@ -24,6 +25,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(c => c.DeletedAt).HasColumnType("timestamptz");
 
         builder.HasIndex(e => e.BankCode);
+        builder.HasIndex(e => e.Group);
 
         builder.HasDiscriminator<string>("AccountType")
             .HasValue<Account>("Account")

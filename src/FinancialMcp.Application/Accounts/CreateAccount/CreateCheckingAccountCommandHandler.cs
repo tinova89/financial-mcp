@@ -5,7 +5,7 @@ using MediatR;
 namespace FinancialMcp.Application.Accounts.CreateAccount;
 
 /// <summary>Single handler for CreateAccountCommand — orchestrates persistence of the new account.</summary>
-public sealed class CreateCheckingAccountCommandHandler(IApplicationDbContext db)
+public sealed class CreateCheckingAccountCommandHandler(IApplicationDbContext db, ICurrentGroupService currentGroup)
     : IRequestHandler<CreateCheckingAccountCommand, CheckingAccountDto>
 {
     public async Task<CheckingAccountDto> Handle(CreateCheckingAccountCommand request, CancellationToken cancellationToken)
@@ -16,6 +16,9 @@ public sealed class CreateCheckingAccountCommandHandler(IApplicationDbContext db
             BankCode = request.BankCode,
             BaseCurrencyCode = request.BaseCurrencyCode,
             InitialAmount = request.InitialAmount,
+            // Enforced present by RequireGroupHeaderMiddleware before this handler ever runs.
+            Group = currentGroup.Group ?? throw new InvalidOperationException(
+                "Cabeçalho X-Account-Group ausente — deveria ter sido bloqueado por RequireGroupHeaderMiddleware."),
         };
 
         db.Accounts.Add(account);

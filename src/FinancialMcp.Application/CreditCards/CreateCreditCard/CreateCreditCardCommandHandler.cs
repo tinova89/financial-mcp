@@ -11,7 +11,7 @@ namespace FinancialMcp.Application.CreditCards.CreateCreditCard;
 /// it's always Credit via CreditCard.Kind's override (see Account.Kind). Validates that
 /// PaymentAccountId resolves to an existing, non-CreditCard account before persisting.
 /// </summary>
-public sealed class CreateCreditCardCommandHandler(IApplicationDbContext db)
+public sealed class CreateCreditCardCommandHandler(IApplicationDbContext db, ICurrentGroupService currentGroup)
     : IRequestHandler<CreateCreditCardCommand, CreditCardDto>
 {
     public async Task<CreditCardDto> Handle(CreateCreditCardCommand request, CancellationToken cancellationToken)
@@ -34,6 +34,9 @@ public sealed class CreateCreditCardCommandHandler(IApplicationDbContext db)
             ClosingDay = request.ClosingDay,
             DueDay = request.DueDay,
             PaymentAccountId = request.PaymentAccountId,
+            // Enforced present by RequireGroupHeaderMiddleware before this handler ever runs.
+            Group = currentGroup.Group ?? throw new InvalidOperationException(
+                "Cabeçalho X-Account-Group ausente — deveria ter sido bloqueado por RequireGroupHeaderMiddleware."),
         };
 
         db.CreditCards.Add(creditCard);
