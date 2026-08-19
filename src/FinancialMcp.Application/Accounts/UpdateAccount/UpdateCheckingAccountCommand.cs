@@ -9,9 +9,9 @@ namespace FinancialMcp.Application.Accounts.UpdateAccount;
 /// Null fields are ignored (partial patch). Kind cannot be patched — it's computed
 /// from the entity's own type (see Account.Kind).
 /// </summary>
-public sealed record UpdateAccountCommand(
+public sealed record UpdateCheckingAccountCommand(
     Guid AccountId,
     string? DisplayName = null,
     string? BankCode = null,
     decimal? InitialAmount = null,
-    string? BaseCurrencyCode = null) : IRequest<AccountDto>, ITransactionalRequest;
+    string? BaseCurrencyCode = null) : IRequest<CheckingAccountDto>, ITransactionalRequest;

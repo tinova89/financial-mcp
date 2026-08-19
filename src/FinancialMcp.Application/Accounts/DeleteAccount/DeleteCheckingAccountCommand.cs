@@ -8,5 +8,5 @@ namespace FinancialMcp.Application.Accounts.DeleteAccount;
 /// explicitly true, validated by ValidationBehavior (see CLAUDE.md > Mediator
 /// Pattern > Destructive operations / What Claude Should Avoid).
 /// </summary>
-public sealed record DeleteAccountCommand(Guid AccountId, bool Confirm)
+public sealed record DeleteCheckingAccountCommand(Guid AccountId, bool Confirm)
     : IRequest, ITransactionalRequest;

@@ -2,9 +2,9 @@ using FluentValidation;
 
 namespace FinancialMcp.Application.Accounts.UpdateAccount;
 
-public sealed class UpdateAccountCommandValidator : AbstractValidator<UpdateAccountCommand>
+public sealed class UpdateCheckingAccountCommandValidator : AbstractValidator<UpdateCheckingAccountCommand>
 {
-    public UpdateAccountCommandValidator()
+    public UpdateCheckingAccountCommandValidator()
     {
         RuleFor(x => x.AccountId).NotEmpty();
 

@@ -7,10 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinancialMcp.Application.Accounts.UpdateAccount;
 
-public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
-    : IRequestHandler<UpdateAccountCommand, AccountDto>
+public sealed class UpdateCheckingAccountCommandHandler(IApplicationDbContext db)
+    : IRequestHandler<UpdateCheckingAccountCommand, CheckingAccountDto>
 {
-    public async Task<AccountDto> Handle(UpdateAccountCommand request, CancellationToken cancellationToken)
+    public async Task<CheckingAccountDto> Handle(UpdateCheckingAccountCommand request, CancellationToken cancellationToken)
     {
         var account = await db.Accounts
             .Include(a => a.CreditCards)
@@ -22,7 +22,7 @@ public sealed class UpdateAccountCommandHandler(IApplicationDbContext db)
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
-        return new AccountDto(
+        return new CheckingAccountDto(
             account.Id, account.DisplayName, account.BankCode, account.InitialAmount,
             account.Kind.ToString(), account.BaseCurrencyCode, account.CreditCards.Select(c => c.Id).ToList());
     }

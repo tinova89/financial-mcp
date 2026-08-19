@@ -10,10 +10,10 @@ namespace FinancialMcp.Application.Accounts.DeleteAccount;
 /// Single handler for DeleteAccountCommand. The confirmation has already been
 /// validated by ValidationBehavior before this handler is reached; here it only applies the soft delete.
 /// </summary>
-public sealed class DeleteAccountCommandHandler(IApplicationDbContext db)
-    : IRequestHandler<DeleteAccountCommand>
+public sealed class DeleteCheckingAccountCommandHandler(IApplicationDbContext db)
+    : IRequestHandler<DeleteCheckingAccountCommand>
 {
-    public async Task Handle(DeleteAccountCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeleteCheckingAccountCommand request, CancellationToken cancellationToken)
     {
         var account = await db.Accounts
             .FirstOrDefaultAsync(a => a.Id == request.AccountId && !(a is CreditCard), cancellationToken);

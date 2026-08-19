@@ -2,9 +2,9 @@ using FluentValidation;
 
 namespace FinancialMcp.Application.Accounts.DeleteAccount;
 
-public sealed class DeleteAccountCommandValidator : AbstractValidator<DeleteAccountCommand>
+public sealed class DeleteCheckingAccountCommandValidator : AbstractValidator<DeleteCheckingAccountCommand>
 {
-    public DeleteAccountCommandValidator()
+    public DeleteCheckingAccountCommandValidator()
     {
         RuleFor(x => x.AccountId).NotEmpty();
 

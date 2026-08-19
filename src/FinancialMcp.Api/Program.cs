@@ -12,6 +12,7 @@ using FinancialMcp.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +53,11 @@ app.MapDefaultEndpoints(); // "/health", "/alive" — see ServiceDefaults.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+else
+{
+    app.UseExceptionHandler();
 }
 
 // Local machine only: set Hosting:ApplyDatabaseMigrationsOnStartup in appsettings.Local.json.
@@ -60,7 +66,7 @@ if (app.Environment.IsDevelopment()
 {
     using IServiceScope scope = app.Services.CreateScope();
     ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //await db.Database.EnsureDeletedAsync();
+    await db.Database.EnsureDeletedAsync();
     await db.Database.MigrateAsync();
     //if (app.Configuration.GetValue("Hosting:ApplySampleFinancialDataAfterMigrations", false))
     //{
@@ -81,14 +87,14 @@ app.MapMcp("/mcp")
 #region Checking Accounts API
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// <summary>
-/// Financial accounts API.
+/// Financial checking accounts API.
 /// </summary>
-RouteGroupBuilder? accounts = app.MapGroup("/api/financial/checking-accounts");
-accounts.WithTags("CheckingAccounts");
+RouteGroupBuilder? checkingAccounts = app.MapGroup("/api/financial/checking-accounts");
+checkingAccounts.WithTags("CheckingAccounts");
 
-accounts.MapPost(
+checkingAccounts.MapPost(
         "/",
-        async (IMediator mediator, [FromBody] CreateAccountCommand command) => await mediator.Send(command))
+        async (IMediator mediator, [FromBody] CreateCheckingAccountCommand command) => await mediator.Send(command))
     .WithName("CreateCheckingAccount")
     .WithDescription("""
         Registers a new financial account (a plain, non-credit-card account — checking,
@@ -124,10 +130,10 @@ accounts.MapPost(
         The created `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """);
 
-accounts.MapPut(
+checkingAccounts.MapPut(
         "/{accountId:Guid}",
-        async (Guid accountId, IMediator mediator, [FromBody] UpdateAccountCommand body) =>
-            await mediator.Send(new UpdateAccountCommand(
+        async (Guid accountId, IMediator mediator, [FromBody] UpdateCheckingAccountCommand body) =>
+            await mediator.Send(new UpdateCheckingAccountCommand(
                 AccountId: accountId,
                 DisplayName: body.DisplayName,
                 BankCode: body.BankCode,
@@ -169,10 +175,10 @@ accounts.MapPut(
         The updated `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """);
 
-accounts.MapDelete(
+checkingAccounts.MapDelete(
         "/{accountId:Guid}/{confirm:bool}",
         async (Guid accountId, bool confirm, IMediator mediator) =>
-            await mediator.Send(new DeleteAccountCommand(accountId, confirm)))
+            await mediator.Send(new DeleteCheckingAccountCommand(accountId, confirm)))
     .WithName("DeleteCheckingAccount")
     .WithDescription("""
         Removes an account via soft delete (sets `IsDeleted`/`DeletedAt`; the row is never

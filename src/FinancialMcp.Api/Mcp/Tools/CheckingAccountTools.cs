@@ -17,9 +17,9 @@ namespace FinancialMcp.Api.Mcp.Tools;
 /// all business logic lives in the handlers in FinancialMcp.Application (see CLAUDE.md > Mediator Pattern).
 /// </summary>
 [McpServerToolType]
-public sealed class AccountTools(IMediator mediator)
+public sealed class CheckingAccountTools(IMediator mediator)
 {
-    [McpServerTool(Name = "list_accounts"), Description(
+    [McpServerTool(Name = "list_checking_accounts"), Description(
         """
         Lists every registered non-credit-card financial account (checking, investment,
         wallet, etc. — use `list_credit_cards` for credit cards).
@@ -37,10 +37,10 @@ public sealed class AccountTools(IMediator mediator)
         ## Returns
         A list of `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
-    public Task<IReadOnlyList<AccountDto>> ListAccountsAsync(CancellationToken cancellationToken = default) =>
-        mediator.Send(new ListAccountsQuery(), cancellationToken);
+    public Task<IReadOnlyList<CheckingAccountDto>> ListAccountsAsync(CancellationToken cancellationToken = default) =>
+        mediator.Send(new ListCheckingAccountsQuery(), cancellationToken);
 
-    [McpServerTool(Name = "get_account"), Description(
+    [McpServerTool(Name = "get_checking_account"), Description(
         """
         Fetches the full detail of a single financial account by id.
 
@@ -62,6 +62,6 @@ public sealed class AccountTools(IMediator mediator)
         ## Returns
         The matching `AccountDto` (id, displayName, bankCode, initialAmount, kind, baseCurrencyCode, creditCardIds).
         """)]
-    public Task<AccountDto> GetAccountAsync(Guid accountId, CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetAccountQuery(accountId), cancellationToken);
+    public Task<CheckingAccountDto> GetAccountAsync(Guid accountId, CancellationToken cancellationToken = default) =>
+        mediator.Send(new GetCheckingAccountQuery(accountId), cancellationToken);
 }

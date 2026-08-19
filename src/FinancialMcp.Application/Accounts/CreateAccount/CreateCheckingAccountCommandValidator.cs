@@ -2,9 +2,9 @@ using FluentValidation;
 
 namespace FinancialMcp.Application.Accounts.CreateAccount;
 
-public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
+public sealed class CreateCheckingAccountCommandValidator : AbstractValidator<CreateCheckingAccountCommand>
 {
-    public CreateAccountCommandValidator()
+    public CreateCheckingAccountCommandValidator()
     {
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(200);
 

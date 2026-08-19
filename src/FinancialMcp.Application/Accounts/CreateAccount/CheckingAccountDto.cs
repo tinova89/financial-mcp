@@ -1,7 +1,7 @@
 namespace FinancialMcp.Application.Accounts.CreateAccount;
 
 /// <summary>Response DTO — never expose the Account domain entity directly (see CLAUDE.md > DTOs).</summary>
-public sealed record AccountDto(
+public sealed record CheckingAccountDto(
     Guid Id,
     string DisplayName,
     string BankCode,
