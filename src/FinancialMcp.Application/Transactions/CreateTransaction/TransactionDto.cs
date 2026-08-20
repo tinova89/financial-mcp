@@ -1,6 +1,17 @@
 namespace FinancialMcp.Application.Transactions.CreateTransaction;
 
 /// <summary>Response DTO — never expose the Transaction domain entity directly (see CLAUDE.md > DTOs).</summary>
+/// <param name="RemainingBudget">
+/// Saldo_Meta for the transaction's parent category/reference month (goal amount minus
+/// Gasto_Real, computed as of this write — see ICategoryBudgetRemainingCalculator). Null when
+/// no budget goal is in effect for that category/month, or when the tool doesn't compute it
+/// (get_transaction/list_transactions never populate this field).
+/// </param>
+/// <param name="RemainingBudgetPercentage">
+/// RemainingBudget as a fraction of the goal amount (e.g. 0.42 means 42% of the budget is
+/// still unspent) — null under the same conditions as RemainingBudget, or when the goal
+/// amount is zero.
+/// </param>
 public sealed record TransactionDto(
     Guid Id,
     string Type,
@@ -15,4 +26,6 @@ public sealed record TransactionDto(
     string? Recurrence,
     int? CurrentInstallment,
     int? TotalInstallments,
-    Guid AccountId);
+    Guid AccountId,
+    decimal? RemainingBudget = null,
+    decimal? RemainingBudgetPercentage = null);

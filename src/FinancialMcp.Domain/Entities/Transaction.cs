@@ -69,14 +69,21 @@ public class Transaction : BaseEntity
     /// authoritative, always-correct discriminator — rather than the caller-supplied Source.
     /// Requires Account to be loaded (callers must .Include(t => t.Account)).
     /// </summary>
-    public MonthYear? GetReferenceMonthYear()
+    public MonthYear? GetReferenceMonthYear() => GetReferenceMonthYear(Account.Kind);
+
+    /// <summary>
+    /// Same rule as the parameterless overload, for callers that already know the account's
+    /// kind without needing the Account navigation loaded (e.g. a single transaction being
+    /// written, where only Account.Kind — not the full entity — is needed).
+    /// </summary>
+    public MonthYear? GetReferenceMonthYear(FinancialAccountKind accountKind)
     {
-        if (Account.Kind != FinancialAccountKind.Credit && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
+        if (accountKind != FinancialAccountKind.Credit && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
         {
             return MonthYear.FromDate(ReconciledDate.Value);
         }
 
-        if (Account.Kind == FinancialAccountKind.Credit && InvoiceDueDate is not null)
+        if (accountKind == FinancialAccountKind.Credit && InvoiceDueDate is not null)
         {
             return MonthYear.FromDate(InvoiceDueDate.Value);
         }

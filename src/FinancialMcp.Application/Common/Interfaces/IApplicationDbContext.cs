@@ -11,6 +11,7 @@ public interface IApplicationDbContext
 {
     DbSet<Transaction> Transactions { get; }
     DbSet<TransactionCategory> TransactionCategories { get; }
+    DbSet<DescriptionCategoryMapping> DescriptionCategoryMappings { get; }
     DbSet<Account> Accounts { get; }
     DbSet<CreditCard> CreditCards { get; }
     DbSet<BudgetGoal> BudgetGoals { get; }

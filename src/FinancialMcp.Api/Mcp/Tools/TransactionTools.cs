@@ -54,7 +54,9 @@ public sealed class TransactionTools(IMediator mediator)
         ```
 
         ## Returns
-        A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages).
+        A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages). Every
+        item's `remainingBudget`/`remainingBudgetPercentage` are always `null` here — only
+        create/update/delete compute the category's remaining budget.
         """)]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
         DateOnly periodStart, DateOnly periodEnd,
@@ -87,7 +89,9 @@ public sealed class TransactionTools(IMediator mediator)
         ## Returns
         The matching `TransactionDto` (id, type, status, description, amount, rawCategory,
         expectedDate, actualDate, reconciledDate, invoiceDueDate, recurrence,
-        currentInstallment, totalInstallments, accountId).
+        currentInstallment, totalInstallments, accountId). `remainingBudget`/
+        `remainingBudgetPercentage` are always `null` here — only create/update/delete
+        compute the category's remaining budget.
         """)]
     public Task<TransactionDto> GetTransactionAsync(Guid transactionId, CancellationToken cancellationToken = default) =>
         mediator.Send(new GetTransactionQuery(transactionId), cancellationToken);
@@ -137,7 +141,12 @@ public sealed class TransactionTools(IMediator mediator)
         ```
 
         ## Returns
-        The created `TransactionDto`.
+        The created `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
+        for the transaction's parent category (see CLAUDE.md > Business Rules > Budget goals):
+        the goal amount minus Gasto_Real for the transaction's reference month, counting this
+        new transaction. Both are `null` when no budget goal is in effect for that
+        category/month (or the transaction has no resolvable reference month yet, e.g. an
+        unreconciled checking-account row with no `reconciledDate`).
         """)]
     public Task<TransactionDto> CreateTransactionAsync(CreateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
@@ -170,7 +179,9 @@ public sealed class TransactionTools(IMediator mediator)
         ```
 
         ## Returns
-        The updated `TransactionDto`.
+        The updated `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
+        for the transaction's (possibly newly changed) parent category and reference month —
+        same rules as `create_transaction`'s `Returns` section.
         """)]
     public Task<TransactionDto> UpdateTransactionAsync(UpdateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
@@ -191,8 +202,6 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
-        - Deleting a transaction does not adjust any related budget goal —
-          re-run `get_budget_status` afterwards if needed.
 
         ## Example
         ```json
@@ -200,13 +209,13 @@ public sealed class TransactionTools(IMediator mediator)
         ```
 
         ## Returns
-        A confirmation message string ("Transação removida (soft delete).").
+        The deleted transaction's `TransactionDto` (its stored fields, unchanged), with
+        `remainingBudget`/`remainingBudgetPercentage` recomputed for its parent category and
+        reference month as if this transaction no longer counts toward Gasto_Real — same
+        null-ability rules as `create_transaction`'s `Returns` section.
         """)]
-    public async Task<string> DeleteTransactionAsync(Guid transactionId, bool confirm, CancellationToken cancellationToken = default)
-    {
-        await mediator.Send(new DeleteTransactionCommand(transactionId, confirm), cancellationToken);
-        return "Transação removida (soft delete).";
-    }
+    public Task<TransactionDto> DeleteTransactionAsync(Guid transactionId, bool confirm, CancellationToken cancellationToken = default) =>
+        mediator.Send(new DeleteTransactionCommand(transactionId, confirm), cancellationToken);
 
     [McpServerTool(Name = "reconcile_transaction"), Description(
         """

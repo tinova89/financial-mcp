@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using FinancialMcp.Application.Categories.ListCategories;
+using FinancialMcp.Application.Categories.LookupCategory;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -39,4 +40,37 @@ public sealed class CategoryTools(IMediator mediator)
         """)]
     public Task<IReadOnlyList<CategoryDto>> ListCategoriesAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListCategoriesQuery(), cancellationToken);
+
+    [McpServerTool(Name = "lookup_category"), Description(
+        """
+        Resolves a category from a transaction description, using the description→category
+        mapping table learned from past transactions (e.g. "Rede economia" → Mercado/Avulso).
+
+        ## Parameters
+        - `description` (string, required): the transaction description to look up — matched
+          case-insensitively against past descriptions.
+
+        ## Behavior
+        - Read-only.
+        - The mapping table has no create/update tool of its own — a row is learned
+          automatically every time `create_transaction` or `update_transaction` resolves a
+          category for a transaction with that exact description (most recent categorization
+          wins). A description that has never been seen on a transaction returns null.
+        - Useful before calling `create_transaction`/`update_transaction`, to reuse the
+          category a similar past transaction was already filed under instead of guessing
+          RawCategory from scratch.
+
+        ## Example
+        ```json
+        { "description": "Rede economia" }
+        ```
+
+        ## Returns
+        `CategoryLookupResultDto` (categoryId, parentCategory, subcategory) if a mapping
+        exists for this description, otherwise null.
+        """)]
+    public Task<CategoryLookupResultDto?> LookupCategoryAsync(
+        [Description("Transaction description to resolve a category for.")] string description,
+        CancellationToken cancellationToken = default) =>
+        mediator.Send(new LookupCategoryQuery(description), cancellationToken);
 }

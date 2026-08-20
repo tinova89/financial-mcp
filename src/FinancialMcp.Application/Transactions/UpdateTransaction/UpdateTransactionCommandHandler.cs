@@ -8,7 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 
-public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, ITransactionCategoryResolver categoryResolver)
+public sealed class UpdateTransactionCommandHandler(
+    IApplicationDbContext db,
+    ITransactionCategoryResolver categoryResolver,
+    ICategoryBudgetRemainingCalculator budgetRemainingCalculator,
+    IDescriptionCategoryMappingRecorder descriptionCategoryMappingRecorder)
     : IRequestHandler<UpdateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(UpdateTransactionCommand request, CancellationToken cancellationToken)
@@ -28,6 +32,10 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, IT
         {
             t.RawCategory = request.RawCategory;
             await categoryResolver.ResolveAsync(t, cancellationToken);
+
+            // Fire-and-forget: learns the description→category association without adding
+            // to this call's latency (see IDescriptionCategoryMappingRecorder).
+            descriptionCategoryMappingRecorder.Record(t.Description, t.CategoryId);
         }
 
         if (request.Amount is not null) t.Amount = request.Amount.Value;
@@ -38,9 +46,12 @@ public sealed class UpdateTransactionCommandHandler(IApplicationDbContext db, IT
 
         t.UpdatedAt = DateTimeOffset.UtcNow;
 
+        var budgetRemaining = await budgetRemainingCalculator.CalculateAsync(t, includeTransaction: true, cancellationToken);
+
         return new TransactionDto(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
             t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
-            t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId);
+            t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId,
+            budgetRemaining.RemainingBudget, budgetRemaining.RemainingBudgetPercentage);
     }
 }

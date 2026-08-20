@@ -10,7 +10,11 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// transaction. Calculation rules (installments, billing cycle) don't apply here:
 /// each row already represents a concrete transaction (see CLAUDE.md > Mediator Pattern).
 /// </summary>
-public sealed class CreateTransactionCommandHandler(IApplicationDbContext db, ITransactionCategoryResolver categoryResolver)
+public sealed class CreateTransactionCommandHandler(
+    IApplicationDbContext db,
+    ITransactionCategoryResolver categoryResolver,
+    ICategoryBudgetRemainingCalculator budgetRemainingCalculator,
+    IDescriptionCategoryMappingRecorder descriptionCategoryMappingRecorder)
     : IRequestHandler<CreateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
@@ -34,9 +38,15 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db, IT
 
         await categoryResolver.ResolveAsync(transaction, cancellationToken);
 
+        // Fire-and-forget: learns the description→category association without adding to
+        // this call's latency (see IDescriptionCategoryMappingRecorder).
+        descriptionCategoryMappingRecorder.Record(transaction.Description, transaction.CategoryId);
+
         db.Transactions.Add(transaction);
 
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
+
+        var budgetRemaining = await budgetRemainingCalculator.CalculateAsync(transaction, includeTransaction: true, cancellationToken);
 
         return new TransactionDto(
             transaction.Id,
@@ -52,6 +62,8 @@ public sealed class CreateTransactionCommandHandler(IApplicationDbContext db, IT
             transaction.Recurrence.ToString(),
             transaction.CurrentInstallment,
             transaction.TotalInstallments,
-            transaction.AccountId);
+            transaction.AccountId,
+            budgetRemaining.RemainingBudget,
+            budgetRemaining.RemainingBudgetPercentage);
     }
 }
