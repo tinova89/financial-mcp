@@ -36,7 +36,8 @@ public sealed class CategoryTools(IMediator mediator)
         ```
 
         ## Returns
-        A list of `CategoryDto` (parentCategory, subcategories).
+        A list of `CategoryDto` (categoryId, parentCategory, subcategories) — categoryId is
+        the parent category's own id (not any of its subcategories').
         """)]
     public Task<IReadOnlyList<CategoryDto>> ListCategoriesAsync(CancellationToken cancellationToken = default) =>
         mediator.Send(new ListCategoriesQuery(), cancellationToken);

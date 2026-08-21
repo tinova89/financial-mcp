@@ -15,6 +15,7 @@ public sealed class ListCategoriesQueryHandler(IApplicationDbContext db)
         return categories
             .Where(c => c.ParentCategoryId is null)
             .Select(parent => new CategoryDto(
+                parent.Id,
                 parent.Name,
                 categories
                     .Where(c => c.ParentCategoryId == parent.Id)
