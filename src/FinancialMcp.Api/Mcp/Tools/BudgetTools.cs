@@ -70,10 +70,11 @@ public sealed class BudgetTools(IMediator mediator)
           than 0. Required.
         - **currencyCode** — ISO currency code. Supported values: `BRL`, `USD`, `BTC`. An
           unrecognized code is rejected by validation before persisting.
-        - **period** — `Monthly` or `OneTime`. Required.
-          - `Monthly` applies from `year`/`month` onward, until a later `Monthly` goal for
-            the same category (a later `year`/`month`) supersedes it.
-          - `OneTime` applies only to the exact `year`/`month` given, with no repetition.
+        - **period** — `int` enum (`BudgetPeriodType`), sent as a plain integer, not a
+          string. Required. Values: `1 - Monthly`, `2 - OneTime`.
+          - `1 - Monthly` applies from `year`/`month` onward, until a later `Monthly` goal
+            for the same category (a later `year`/`month`) supersedes it.
+          - `2 - OneTime` applies only to the exact `year`/`month` given, with no repetition.
         - **year** / **month** — The goal's own reference month (its `PeriodReference`).
           Required.
 
@@ -91,8 +92,9 @@ public sealed class BudgetTools(IMediator mediator)
         ## Example
         ```json
         { "categoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "amount": 1000.00,
-          "currencyCode": "BRL", "period": "OneTime", "year": 2026, "month": 8 }
+          "currencyCode": "BRL", "period": 2, "year": 2026, "month": 8 }
         ```
+        (`period: 2` = OneTime.)
 
         ## Returns
         The created `BudgetGoalDto` (id, categoryId, categoryName, amount, currencyCode,

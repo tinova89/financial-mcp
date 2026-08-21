@@ -103,8 +103,10 @@ public sealed class TransactionTools(IMediator mediator)
         `CreateTransactionCommand`.
 
         ## Parameters (fields of the command object)
-        - **type** — `Expense`, `Income`, `Transfer`, or `Payment`. Required.
-        - **status** — `Reconciled`, `Scheduled`, or `Unreconciled`. Required.
+        - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
+          Required. Values: `0 - Expense`, `1 - Income`, `2 - Transfer`, `3 - Payment`.
+        - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
+          string. Required. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
         - **description** — Up to 500 characters. Required.
         - **amount** — Non-zero decimal. Required.
         - **rawCategory** — `"Categoria-mãe/Subcategoria"` (subcategory optional within
@@ -114,9 +116,10 @@ public sealed class TransactionTools(IMediator mediator)
         - **reconciledDate** — Set when reconciling a checking-account row. Optional.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
           ("Venc. Fatura").
-        - **recurrence** — `None`, `Installment`, or `FixedMonthly`. Required.
+        - **recurrence** — `int` enum (`RecurrenceType`), sent as a plain integer, not a
+          string. Required. Values: `0 - None`, `1 - Installment`, `2 - FixedMonthly`.
         - **currentInstallment** / **totalInstallments** — Required (and
-          `totalInstallments >= currentInstallment`) when `recurrence = Installment`.
+          `totalInstallments >= currentInstallment`) when `recurrence = 1` (`Installment`).
         - **accountId** — `Guid` identifying the destination: a checking account for a
           plain checking-account transaction, or a credit card's own id for a credit-card
           transaction (a credit card is an Account row via EF Core TPH). Required.
@@ -133,12 +136,13 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "type": "Expense", "status": "Unreconciled",
+        { "type": 0, "status": 2,
           "description": "Notebook 6/12", "amount": -450.00, "rawCategory": "Eletrônicos",
           "expectedDate": "2026-08-05", "invoiceDueDate": "2026-08-12",
-          "recurrence": "Installment", "currentInstallment": 6, "totalInstallments": 12,
+          "recurrence": 1, "currentInstallment": 6, "totalInstallments": 12,
           "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
         ```
+        (`type: 0` = Expense, `status: 2` = Unreconciled, `recurrence: 1` = Installment.)
 
         ## Returns
         The created `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
