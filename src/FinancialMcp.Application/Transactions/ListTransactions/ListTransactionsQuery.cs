@@ -1,4 +1,5 @@
 using FinancialMcp.Application.Transactions.CreateTransaction;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Transactions.ListTransactions;
@@ -6,14 +7,13 @@ namespace FinancialMcp.Application.Transactions.ListTransactions;
 /// <summary>
 /// Lists checking account and/or credit card transactions with filters. Corresponds to the MCP tool
 /// `list_transactions` (see CLAUDE.md > MCP). PeriodStart/PeriodEnd are required; all other filters
-/// are optional. Type/Status are raw strings validated against TransactionType/TransactionStatus by
-/// ListTransactionsQueryValidator (see FinancialMcp.Domain.Enums).
+/// are optional.
 /// </summary>
 public sealed record ListTransactionsQuery(
     DateOnly PeriodStart,
     DateOnly PeriodEnd,
-    string? Type = null,
-    string? Status = null,
+    TransactionType? Type = null,
+    TransactionStatus? Status = null,
     string? ParentCategory = null,
     string? Subcategory = null,
     Guid? AccountId = null,

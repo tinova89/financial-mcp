@@ -26,14 +26,12 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
 
         if (request.Type is not null)
         {
-            var type = Enum.Parse<TransactionType>(request.Type, ignoreCase: true);
-            query = query.Where(t => t.Type == type);
+            query = query.Where(t => t.Type == request.Type);
         }
 
         if (request.Status is not null)
         {
-            var status = Enum.Parse<TransactionStatus>(request.Status, ignoreCase: true);
-            query = query.Where(t => t.Status == status);
+            query = query.Where(t => t.Status == request.Status);
         }
 
         if (request.AccountId is not null)

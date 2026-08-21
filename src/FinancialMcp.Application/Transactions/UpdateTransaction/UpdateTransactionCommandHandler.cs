@@ -26,7 +26,7 @@ public sealed class UpdateTransactionCommandHandler(
             throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
-        if (request.Status is not null) t.Status = Enum.Parse<TransactionStatus>(request.Status);
+        if (request.Status is not null) t.Status = request.Status.Value;
 
         if (request.RawCategory is not null)
         {

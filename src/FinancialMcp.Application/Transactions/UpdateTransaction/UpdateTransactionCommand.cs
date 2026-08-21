@@ -1,5 +1,6 @@
 using FinancialMcp.Application.Common.Behaviors;
 using FinancialMcp.Application.Transactions.CreateTransaction;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 
 namespace FinancialMcp.Application.Transactions.UpdateTransaction;
@@ -10,7 +11,7 @@ namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 /// </summary>
 public sealed record UpdateTransactionCommand(
     Guid TransactionId,
-    string? Status = null,
+    TransactionStatus? Status = null,
     string? RawCategory = null,
     decimal? Amount = null,
     DateOnly? ExpectedDate = null,

@@ -5,6 +5,7 @@ using FinancialMcp.Application.Transactions.GetTransaction;
 using FinancialMcp.Application.Transactions.ListTransactions;
 using FinancialMcp.Application.Transactions.ReconcileTransaction;
 using FinancialMcp.Application.Transactions.UpdateTransaction;
+using FinancialMcp.Domain.Enums;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -25,10 +26,10 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Parameters
         - **periodStart** / **periodEnd** — Inclusive `ExpectedDate` range. Required.
-        - **type** — Filter by `"Expense"`, `"Income"`, `"Transfer"`, or `"Payment"`.
-          Optional.
-        - **status** — Filter by `"Reconciled"`, `"Scheduled"`, or `"Unreconciled"`.
-          Optional.
+        - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
+          Optional. Values: `0 - Expense`, `1 - Income`, `2 - Transfer`, `3 - Payment`.
+        - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
+          string. Optional. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
         - **category** — Filter to rows whose category starts with this parent (e.g.
           `"Moradia"` matches both `Moradia` and `Moradia/Seguro`). Optional.
         - **subcategory** — Filter to rows with this exact subcategory. Optional; applied
@@ -50,8 +51,9 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": "Unreconciled", "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
+        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": 2, "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
         ```
+        (`status: 2` = Unreconciled.)
 
         ## Returns
         A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages). Every
@@ -60,7 +62,7 @@ public sealed class TransactionTools(IMediator mediator)
         """)]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
         DateOnly periodStart, DateOnly periodEnd,
-        string? type = null, string? status = null,
+        TransactionType? type = null, TransactionStatus? status = null,
         string? category = null, string? subcategory = null,
         Guid? accountId = null,
         int? year = null, int? month = null, int page = 1, int pageSize = 50,
@@ -163,7 +165,8 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Parameters (fields of the command object)
         - **transactionId** — `Guid` of the transaction to update. Required.
-        - **status** — New status (`Reconciled`, `Scheduled`, `Unreconciled`). Optional.
+        - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
+          string. Optional. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
         - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional.
         - **amount** — New amount. Optional.
         - **expectedDate** / **actualDate** / **reconciledDate** / **invoiceDueDate** — New
@@ -179,8 +182,9 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": "Reconciled", "reconciledDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 0, "reconciledDate": "2026-08-10" }
         ```
+        (`status: 0` = Reconciled.)
 
         ## Returns
         The updated `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`

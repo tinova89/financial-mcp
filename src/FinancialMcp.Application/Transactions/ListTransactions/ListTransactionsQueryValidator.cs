@@ -1,5 +1,4 @@
 using FluentValidation;
-using FinancialMcp.Domain.Enums;
 
 namespace FinancialMcp.Application.Transactions.ListTransactions;
 
@@ -10,15 +9,9 @@ public sealed class ListTransactionsQueryValidator : AbstractValidator<ListTrans
         RuleFor(x => x.Page).GreaterThan(0);
         RuleFor(x => x.PageSize).InclusiveBetween(1, 200);
 
-        RuleFor(x => x.Type)
-            .Must(value => Enum.TryParse<TransactionType>(value, ignoreCase: true, out _))
-            .When(x => x.Type is not null)
-            .WithMessage($"Type deve ser um dos valores: {string.Join(", ", Enum.GetNames<TransactionType>())}.");
+        RuleFor(x => x.Type).IsInEnum().When(x => x.Type is not null);
 
-        RuleFor(x => x.Status)
-            .Must(value => Enum.TryParse<TransactionStatus>(value, ignoreCase: true, out _))
-            .When(x => x.Status is not null)
-            .WithMessage($"Status deve ser um dos valores: {string.Join(", ", Enum.GetNames<TransactionStatus>())}.");
+        RuleFor(x => x.Status).IsInEnum().When(x => x.Status is not null);
 
         RuleFor(x => x.PeriodEnd)
             .GreaterThanOrEqualTo(x => x.PeriodStart)
