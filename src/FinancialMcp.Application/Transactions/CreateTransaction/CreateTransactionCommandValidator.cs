@@ -23,6 +23,10 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
+        RuleFor(x => x.ReconciledDate).NotNull()
+            .When(x => x.Status == TransactionStatus.Reconciled)
+            .WithMessage("DataConciliado é obrigatório quando Status = Reconciliado.");
+
         // Mandatory regardless of the referenced account's kind: the checking account for
         // checking-account transactions, or the CreditCard's own id for credit-card transactions.
         RuleFor(x => x.AccountId).NotEmpty()

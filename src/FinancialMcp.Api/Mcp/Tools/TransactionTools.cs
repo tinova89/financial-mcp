@@ -115,7 +115,8 @@ public sealed class TransactionTools(IMediator mediator)
           the string, split on `/`). Required.
         - **expectedDate** — The statement's "Data prevista". Required.
         - **actualDate** — The statement's "Data efetiva". Optional.
-        - **reconciledDate** — Set when reconciling a checking-account row. Optional.
+        - **reconciledDate** — Set when reconciling a checking-account row. Required when
+          `status = 0` (`Reconciled`); optional otherwise.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
           ("Venc. Fatura").
         - **recurrence** — `int` enum (`RecurrenceType`), sent as a plain integer, not a
