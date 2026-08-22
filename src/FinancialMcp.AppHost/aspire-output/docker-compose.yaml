@@ -23,6 +23,39 @@ services:
         target: "/var/lib/postgresql"
         source: "financialmcp.apphost-f5fd0c0310-financialmcp-postgres-data"
         read_only: false
+      - type: "bind"
+        target: "/docker-entrypoint-initdb.d"
+        source: "${FINANCIALMCP_POSTGRES_BINDMOUNT_0}"
+        read_only: true
+    networks:
+      - "aspire"
+  pgadmin:
+    image: "dpage/pgadmin4:latest"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_PASSWORD}"
+      ConnectionStrings__dev-financial-db: "Host=financialmcp-postgres;Port=5432;Username=postgres;Password=${FINANCIALMCP_POSTGRES_PASSWORD};Database=dev-financial-db"
+      DEV_FINANCIAL_DB_HOST: "financialmcp-postgres"
+      DEV_FINANCIAL_DB_PORT: "5432"
+      DEV_FINANCIAL_DB_USERNAME: "postgres"
+      DEV_FINANCIAL_DB_PASSWORD: "${FINANCIALMCP_POSTGRES_PASSWORD}"
+      DEV_FINANCIAL_DB_URI: "postgresql://postgres:${FINANCIALMCP_POSTGRES_PASSWORD}@financialmcp-postgres:5432/dev-financial-db"
+      DEV_FINANCIAL_DB_JDBCCONNECTIONSTRING: "jdbc:postgresql://financialmcp-postgres:5432/dev-financial-db"
+      DEV_FINANCIAL_DB_DATABASENAME: "dev-financial-db"
+    ports:
+      - "80"
+    volumes:
+      - type: "bind"
+        target: "/pgadmin4/servers.json"
+        source: "${PGADMIN_BINDMOUNT_0}"
+        read_only: true
+      - type: "volume"
+        target: "/var/lib/pgadmin"
+        source: "financialmcp-pgadmin-data"
+        read_only: false
+    depends_on:
+      financialmcp-postgres:
+        condition: "service_started"
     networks:
       - "aspire"
   financialmcp-api:
@@ -54,4 +87,6 @@ networks:
     driver: "bridge"
 volumes:
   financialmcp.apphost-f5fd0c0310-financialmcp-postgres-data:
+    driver: "local"
+  financialmcp-pgadmin-data:
     driver: "local"

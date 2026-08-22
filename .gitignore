@@ -8,6 +8,8 @@ obj/
 ## Aspire
 **/AppHost/bin/
 **/AppHost/obj/
+src/FinancialMcp.AppHost/pgadmin/
+src/FinancialMcp.AppHost/postgres-init/
 
 ## Test results
 TestResults/
