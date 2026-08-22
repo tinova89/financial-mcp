@@ -27,9 +27,9 @@ public sealed class TransactionTools(IMediator mediator)
         ## Parameters
         - **periodStart** / **periodEnd** — Inclusive `ExpectedDate` range. Required.
         - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
-          Optional. Values: `0 - Expense`, `1 - Income`, `2 - Transfer`, `3 - Payment`.
+          Optional. Values: `1 - Expense`, `2 - Income`, `3 - Transfer`, `4 - Payment`.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Optional. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
+          string. Optional. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
         - **category** — Filter to rows whose category starts with this parent (e.g.
           `"Moradia"` matches both `Moradia` and `Moradia/Seguro`). Optional.
         - **subcategory** — Filter to rows with this exact subcategory. Optional; applied
@@ -51,9 +51,9 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": 2, "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
+        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": 3, "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
         ```
-        (`status: 2` = Unreconciled.)
+        (`status: 3` = Unreconciled.)
 
         ## Returns
         A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages). Every
@@ -106,9 +106,9 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Parameters (fields of the command object)
         - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
-          Required. Values: `0 - Expense`, `1 - Income`, `2 - Transfer`, `3 - Payment`.
+          Required. Values: `1 - Expense`, `2 - Income`, `3 - Transfer`, `4 - Payment`.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Required. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
+          string. Required. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
         - **description** — Up to 500 characters. Required.
         - **amount** — Non-zero decimal. Required.
         - **rawCategory** — `"Categoria-mãe/Subcategoria"` (subcategory optional within
@@ -116,7 +116,7 @@ public sealed class TransactionTools(IMediator mediator)
         - **expectedDate** — The statement's "Data prevista". Required.
         - **actualDate** — The statement's "Data efetiva". Optional.
         - **reconciledDate** — Set when reconciling a checking-account row. Required when
-          `status = 0` (`Reconciled`); optional otherwise.
+          `status = 1` (`Reconciled`); optional otherwise.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
           ("Venc. Fatura").
         - **recurrence** — `int` enum (`RecurrenceType`), sent as a plain integer, not a
@@ -139,13 +139,13 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "type": 0, "status": 2,
+        { "type": 1, "status": 3,
           "description": "Notebook 6/12", "amount": -450.00, "rawCategory": "Eletrônicos",
           "expectedDate": "2026-08-05", "invoiceDueDate": "2026-08-12",
           "recurrence": 1, "currentInstallment": 6, "totalInstallments": 12,
           "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
         ```
-        (`type: 0` = Expense, `status: 2` = Unreconciled, `recurrence: 1` = Installment.)
+        (`type: 1` = Expense, `status: 3` = Unreconciled, `recurrence: 1` = Installment.)
 
         ## Returns
         The created `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
@@ -167,7 +167,7 @@ public sealed class TransactionTools(IMediator mediator)
         ## Parameters (fields of the command object)
         - **transactionId** — `Guid` of the transaction to update. Required.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Optional. Values: `0 - Reconciled`, `1 - Scheduled`, `2 - Unreconciled`.
+          string. Optional. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
         - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional.
         - **amount** — New amount. Optional.
         - **expectedDate** / **actualDate** / **reconciledDate** / **invoiceDueDate** — New
@@ -183,9 +183,9 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 0, "reconciledDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 1, "reconciledDate": "2026-08-10" }
         ```
-        (`status: 0` = Reconciled.)
+        (`status: 1` = Reconciled.)
 
         ## Returns
         The updated `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`

@@ -6,7 +6,7 @@ namespace FinancialMcp.Domain.Enums;
 /// </summary>
 public enum TransactionStatus
 {
-    Reconciled,
-    Scheduled,    // checking account only
-    Unreconciled  // credit card only — expected, subject to change until the bill closes
+    Reconciled = 1,
+    Scheduled = 2,    // checking account only
+    Unreconciled = 3  // credit card only — expected, subject to change until the bill closes
 }

@@ -6,8 +6,8 @@ namespace FinancialMcp.Domain.Enums;
 /// <remarks>Payment values are excluded from budget goal calculations to avoid double-counting.</remarks>
 public enum TransactionType
 {
-    Expense,
-    Income,
-    Transfer,
-    Payment // "Card payment" — never enters the budget goal calculation (avoids double-counting).
+    Expense = 1,
+    Income = 2,
+    Transfer = 3,
+    Payment = 4 // "Card payment" — never enters the budget goal calculation (avoids double-counting).
 }
