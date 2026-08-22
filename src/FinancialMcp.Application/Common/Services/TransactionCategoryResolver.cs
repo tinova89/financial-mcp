@@ -48,6 +48,10 @@ public sealed class TransactionCategoryResolver(IApplicationDbContext db) : ITra
 
         db.TransactionCategories.Add(created);
 
+        // Committed right here — the category's existence must not depend on the caller's
+        // own transaction (e.g. TransactionBehavior's) later committing successfully.
+        await db.SaveChangesAsync(cancellationToken);
+
         return created;
     }
 
