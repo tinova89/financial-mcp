@@ -3,12 +3,36 @@
 // string into the API via service discovery, and enables the Aspire dashboard.
 // See CLAUDE.md > Architecture > Aspire / Persistence (Postgres).
 
+using Aspire.Hosting.Docker;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Machine-specific overrides (optional). Loaded after appsettings.json and appsettings.{Environment}.json.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
+string dbname = "financial-db"; // Production
+// Check for a custom environment name
+if (builder.Environment.IsDevelopment()
+    || builder.Environment.IsEnvironment("devlocal"))
+{
+    dbname = "dev-financial-db";
+}
+else if (builder.Environment.IsStaging())
+{
+    dbname = "staging-financial-db";
+}
+
+builder.AddDockerComposeEnvironment("env")
+    .ConfigureEnvFile(env =>
+    {
+        env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
+        {
+            Name = "FINANCIALMCP_API_IMAGE",
+            DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
+        };
+    });
 
 // Postgres resource — resource name "financialmcp-postgres", database "financialmcp-db".
 // In production this resource is replaced by the real connection string via
@@ -18,7 +42,7 @@ var postgres = builder
     .WithDataVolume(isReadOnly: false)
     .WithPgAdmin();
 
-var financialDb = postgres.AddDatabase("financialmcp-db");
+var financialDb = postgres.AddDatabase(dbname);
 
 // API: ASP.NET Core Web API + MCP Server host, referencing Postgres via
 // service discovery (never a hardcoded URL/connection string in the API project).
