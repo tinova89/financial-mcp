@@ -25,18 +25,24 @@ else if (builder.Environment.IsStaging())
     dbname = "staging-financial-db";
 }
 
-// Tags the API image with the environment name instead of Aspire's default build
-// timestamp, so a "devlocal" build and a "staging" build get distinct, stable image
-// tags — both can sit side by side on the same Docker host (or in the same compose
-// project) without one overwriting the other's image.
+// Reverted: relabeling FINANCIALMCP_API_IMAGE here only changes what tag docker-compose
+// *references* — it does not retag the image `dotnet publish` actually builds locally.
+// With this on, `docker compose up` looked for "financialmcp-api:aspire-deploy-devlocal"
+// on Docker Hub (since no local image has that tag) and failed with a pull-access-denied
+// error. Confirmed as a known Aspire bug for ProjectResource + custom image name/tag
+// combined with Docker Compose .env generation: https://github.com/dotnet/aspire/issues/9711
+// Getting env-distinguishable tags working for real needs the *build* step retagged via
+// .WithImageTag(...) on the `api` resource itself, which has the same open bug risk — not
+// attempted here. Leaving Aspire's own default (timestamp-based, always matches the real
+// build) until that's fixed upstream.
 builder.AddDockerComposeEnvironment("env")
     .ConfigureEnvFile(env =>
     {
-        env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
-        {
-            Name = "FINANCIALMCP_API_IMAGE",
-            DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
-        };
+        //env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
+        //{
+        //    Name = "FINANCIALMCP_API_IMAGE",
+        //    DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
+        //};
     });
 
 // Ensures `dbname` exists the first time the Postgres container initializes its data
