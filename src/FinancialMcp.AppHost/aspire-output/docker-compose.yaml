@@ -64,6 +64,8 @@ services:
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "${FINANCIALMCP_API_PORT}"
+      ASPNETCORE_ENVIRONMENT: "devlocal"
+      FINANCIALMCP_POSTGREE_DBNAME: "dev-financial-db"
       ConnectionStrings__dev-financial-db: "Host=financialmcp-postgres;Port=5432;Username=postgres;Password=${FINANCIALMCP_POSTGRES_PASSWORD};Database=dev-financial-db"
       DEV_FINANCIAL_DB_HOST: "financialmcp-postgres"
       DEV_FINANCIAL_DB_PORT: "5432"

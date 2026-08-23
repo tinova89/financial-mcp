@@ -38,11 +38,11 @@ else if (builder.Environment.IsStaging())
 builder.AddDockerComposeEnvironment("env")
     .ConfigureEnvFile(env =>
     {
-        //env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
-        //{
-        //    Name = "FINANCIALMCP_API_IMAGE",
-        //    DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
-        //};
+        env["FINANCIALMCP_POSTGREE_DBNAME"] = new CapturedEnvironmentVariable
+        {
+            Name = "FINANCIALMCP_POSTGREE_DBNAME",
+            DefaultValue = dbname
+        };
     });
 
 // Ensures `dbname` exists the first time the Postgres container initializes its data
@@ -126,6 +126,17 @@ var pgAdmin = builder
 // service discovery (never a hardcoded URL/connection string in the API project).
 var api = builder
     .AddProject<Projects.FinancialMcp_Api>("financialmcp-api")
+    // A container built via `aspire deploy` has no launchSettings.json to fall back on
+    // and defaults to ASPNETCORE_ENVIRONMENT=Production when unset — propagate the
+    // AppHost's own environment name (e.g. "devlocal", set via `--environment`) so the
+    // deployed API's IsDevOrLocal() (FinancialMcp.Api/Common/GeneralExtension.cs) agrees
+    // with the `dbname` choice above.
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+    // Mirrors the FINANCIALMCP_POSTGREE_DBNAME entry registered above in
+    // ConfigureEnvFile, so the API process (dotnet run or the deployed container
+    // alike) can read the same value via builder.Configuration (see
+    // FinancialMcp.Api/Program.cs).
+    .WithEnvironment("FINANCIALMCP_POSTGREE_DBNAME", dbname)
     .WithReference(financialDb)
     .WaitFor(financialDb)
     .WithExternalHttpEndpoints();

@@ -23,9 +23,12 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 // (see CLAUDE.md > Architecture > Aspire).
 builder.AddServiceDefaults();
 
-// Postgres via Aspire integration: the connection string for the "financialmcp-db"
-// resource is injected automatically by service discovery (never hardcoded here).
-builder.AddNpgsqlDbContext<ApplicationDbContext>("financialmcp-db");
+// Postgres via Aspire integration: the connection string resource name is read from
+// FINANCIALMCP_POSTGREE_DBNAME, registered by the AppHost's docker-compose environment
+// (see FinancialMcp.AppHost/Program.cs, ConfigureEnvFile) — falls back to the default
+// Aspire resource name "financialmcp-db" when unset.
+string postgresDbName = builder.Configuration["FINANCIALMCP_POSTGREE_DBNAME"] ?? "financialmcp-db";
+builder.AddNpgsqlDbContext<ApplicationDbContext>(postgresDbName);
 
 
 // Application layers (see CLAUDE.md > Mediator Pattern > Registration and > Authentication).
@@ -46,15 +49,19 @@ builder.Services
 
 var app = builder.Build();
 
+ILogger<Program> logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("FinancialMcp.Api starting up. Environment: {Environment}", app.Environment.EnvironmentName);
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<RequireGroupHeaderMiddleware>();
 
 app.MapDefaultEndpoints(); // "/health", "/alive" — see ServiceDefaults.
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevOrLocal())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    logger.LogInformation("OpenAPI and Scalar reference mapped (dev/local environment).");
 }
 else
 {
@@ -62,13 +69,15 @@ else
 }
 
 // Local machine only: set Hosting:ApplyDatabaseMigrationsOnStartup in appsettings.Local.json.
-if (app.Environment.IsDevelopment()
+if (app.Environment.IsDevOrLocal()
     && app.Configuration.GetValue("Hosting:ApplyDatabaseMigrationsOnStartup", false))
 {
+    logger.LogInformation("Applying database migrations on startup...");
     using IServiceScope scope = app.Services.CreateScope();
     ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     //await db.Database.EnsureDeletedAsync();
     await db.Database.MigrateAsync();
+    logger.LogInformation("Database migrations applied successfully.");
     //if (app.Configuration.GetValue("Hosting:ApplySampleFinancialDataAfterMigrations", false))
     //{
     //    await FinancialSampleDataSeeder.EnsureInitialSampleDataAsync(db);
@@ -84,6 +93,7 @@ if (app.Environment.IsDevelopment()
 app.MapMcp("/mcp")
     //.RequireAuthorization()
     ;
+logger.LogInformation("MCP endpoint mapped at /mcp.");
 
 #region Checking Accounts API
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -349,6 +359,8 @@ creditCards.MapDelete(
         """);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #endregion
+
+logger.LogInformation("FinancialMcp.Api startup complete. Ready to accept requests.");
 
 await app.RunAsync();
 
