@@ -25,14 +25,18 @@ else if (builder.Environment.IsStaging())
     dbname = "staging-financial-db";
 }
 
+// Tags the API image with the environment name instead of Aspire's default build
+// timestamp, so a "devlocal" build and a "staging" build get distinct, stable image
+// tags — both can sit side by side on the same Docker host (or in the same compose
+// project) without one overwriting the other's image.
 builder.AddDockerComposeEnvironment("env")
     .ConfigureEnvFile(env =>
     {
-        //env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
-        //{
-        //    Name = "FINANCIALMCP_API_IMAGE",
-        //    DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
-        //};
+        env["FINANCIALMCP_API_IMAGE"] = new CapturedEnvironmentVariable
+        {
+            Name = "FINANCIALMCP_API_IMAGE",
+            DefaultValue = $"financialmcp-api:aspire-deploy-{builder.Environment.EnvironmentName}"
+        };
     });
 
 // Ensures `dbname` exists the first time the Postgres container initializes its data
