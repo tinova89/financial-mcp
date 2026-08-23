@@ -56,7 +56,7 @@ File.WriteAllText(
 // for it interactively instead of inventing a password for you. Locally, `dotnet run`
 // picks up whatever is already saved under "Parameters:financialmcp-postgres-password"
 // in user secrets (set via `dotnet user-secrets set` — see CLAUDE.md > Authentication).
-var postgresPassword = builder.AddParameter("financialmcp-postgres-password", secret: true);
+var postgresPassword = builder.AddParameter("financialmcp-postgres-password", "1234");
 
 // Postgres resource — resource name "financialmcp-postgres", database "financialmcp-db".
 // In production this resource is replaced by the real connection string via
