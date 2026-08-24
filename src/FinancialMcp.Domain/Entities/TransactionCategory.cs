@@ -17,6 +17,13 @@ public sealed class TransactionCategory : BaseEntity
     public string? Description { get; set; }
     public FinancialOperationKind Operation { get; set; }
 
+    /// <summary>
+    /// Free-text description hints for this category (e.g. "Rede economia, Extra hiper,
+    /// Carrefour") — set only via the `update_category_instruction` MCP tool (never
+    /// auto-learned from transactions) and listed by the `lookup_category` MCP tool.
+    /// </summary>
+    public string? Instruction { get; set; }
+
     /// <summary>Null for a top-level (parent) category.</summary>
     public Guid? ParentCategoryId { get; set; }
     public TransactionCategory? ParentCategory { get; set; }

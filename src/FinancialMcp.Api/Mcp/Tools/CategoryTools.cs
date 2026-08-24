@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using FinancialMcp.Application.Categories.ListCategories;
 using FinancialMcp.Application.Categories.LookupCategory;
+using FinancialMcp.Application.Categories.UpdateCategoryInstruction;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -44,34 +45,61 @@ public sealed class CategoryTools(IMediator mediator)
 
     [McpServerTool(Name = "lookup_category"), Description(
         """
-        Resolves a category from a transaction description, using the description→category
-        mapping table learned from past transactions (e.g. "Rede economia" → Mercado/Avulso).
+        Lists every category that currently carries an Instruction free-text hint (e.g.
+        category Mercado/Avulso might carry the Instruction "Rede economia, Extra hiper").
 
         ## Parameters
-        - `description` (string, required): the transaction description to look up — matched
-          case-insensitively against past descriptions.
+        None — this tool takes no filters and always returns every category that has an
+        Instruction set.
 
         ## Behavior
         - Read-only.
-        - The mapping table has no create/update tool of its own — a row is learned
-          automatically every time `create_transaction` or `update_transaction` resolves a
-          category for a transaction with that exact description (most recent categorization
-          wins). A description that has never been seen on a transaction returns null.
-        - Useful before calling `create_transaction`/`update_transaction`, to reuse the
-          category a similar past transaction was already filed under instead of guessing
-          RawCategory from scratch.
+        - Instruction has no automatic learning anymore — it's only ever set via
+          `update_category_instruction`. A category with no Instruction set is omitted here.
+        - Useful before calling `create_transaction`/`update_transaction`, to check which
+          category's Instruction hints match the transaction's description instead of
+          guessing RawCategory from scratch.
 
         ## Example
         ```json
-        { "description": "Rede economia" }
+        {}
         ```
 
         ## Returns
-        `CategoryLookupResultDto` (categoryId, parentCategory, subcategory) if a mapping
-        exists for this description, otherwise null.
+        A list of `CategoryInstructionDto` (categoryId, parentCategory, subcategory,
+        instruction).
         """)]
-    public Task<CategoryLookupResultDto?> LookupCategoryAsync(
-        [Description("Transaction description to resolve a category for.")] string description,
+    public Task<IReadOnlyList<CategoryInstructionDto>> LookupCategoryAsync(CancellationToken cancellationToken = default) =>
+        mediator.Send(new LookupCategoryQuery(), cancellationToken);
+
+    [McpServerTool(Name = "update_category_instruction"), Description(
+        """
+        Sets a category's Instruction free-text hint, used by `lookup_category` to help
+        match future transaction descriptions to this category.
+
+        ## Parameters
+        - `categoryId` (guid, required): id of the category (parent or subcategory) to
+          update — from `list_categories` or `lookup_category`.
+        - `instruction` (string, required, max 2000 chars): the free-text hint to store,
+          e.g. "Rede economia, Extra hiper, Carrefour". Overwrites any previous value.
+
+        ## Behavior
+        - Write. Fails if `categoryId` doesn't match an existing category.
+        - This is the only way Instruction gets written — it's no longer learned
+          automatically from transaction descriptions on create/update.
+
+        ## Example
+        ```json
+        { "categoryId": "b3f1...", "instruction": "Rede economia, Extra hiper" }
+        ```
+
+        ## Returns
+        The updated `CategoryInstructionDto` (categoryId, parentCategory, subcategory,
+        instruction).
+        """)]
+    public Task<CategoryInstructionDto> UpdateCategoryInstructionAsync(
+        [Description("Id of the category (parent or subcategory) to update.")] Guid categoryId,
+        [Description("Free-text hint to store for this category, e.g. \"Rede economia, Extra hiper\".")] string instruction,
         CancellationToken cancellationToken = default) =>
-        mediator.Send(new LookupCategoryQuery(description), cancellationToken);
+        mediator.Send(new UpdateCategoryInstructionCommand(categoryId, instruction), cancellationToken);
 }

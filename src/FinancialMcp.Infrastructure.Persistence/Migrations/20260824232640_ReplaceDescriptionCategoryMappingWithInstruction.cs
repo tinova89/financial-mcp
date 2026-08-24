@@ -1,0 +1,67 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace FinancialMcp.Infrastructure.Persistence.Migrations
+{
+    /// <inheritdoc />
+    public partial class ReplaceDescriptionCategoryMappingWithInstruction : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "description_category_mappings");
+
+            migrationBuilder.AddColumn<string>(
+                name: "Instruction",
+                table: "transaction_categories",
+                type: "character varying(2000)",
+                maxLength: 2000,
+                nullable: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "Instruction",
+                table: "transaction_categories");
+
+            migrationBuilder.CreateTable(
+                name: "description_category_mappings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_description_category_mappings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_description_category_mappings_transaction_categories_Catego~",
+                        column: x => x.CategoryId,
+                        principalTable: "transaction_categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_description_category_mappings_CategoryId",
+                table: "description_category_mappings",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "ux_description_category_mappings_description",
+                table: "description_category_mappings",
+                column: "Description",
+                unique: true);
+        }
+    }
+}

@@ -11,8 +11,7 @@ namespace FinancialMcp.Application.Transactions.UpdateTransaction;
 public sealed class UpdateTransactionCommandHandler(
     IApplicationDbContext db,
     ITransactionCategoryResolver categoryResolver,
-    ICategoryBudgetRemainingCalculator budgetRemainingCalculator,
-    IDescriptionCategoryMappingRecorder descriptionCategoryMappingRecorder)
+    ICategoryBudgetRemainingCalculator budgetRemainingCalculator)
     : IRequestHandler<UpdateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(UpdateTransactionCommand request, CancellationToken cancellationToken)
@@ -32,10 +31,6 @@ public sealed class UpdateTransactionCommandHandler(
         {
             t.RawCategory = request.RawCategory;
             await categoryResolver.ResolveAsync(t, cancellationToken);
-
-            // Fire-and-forget: learns the description→category association without adding
-            // to this call's latency (see IDescriptionCategoryMappingRecorder).
-            descriptionCategoryMappingRecorder.Record(t.Description, t.CategoryId);
         }
 
         if (request.Amount is not null) t.Amount = request.Amount.Value;

@@ -19,6 +19,7 @@ public sealed class TransactionCategoryConfiguration : IEntityTypeConfiguration<
 
         builder.Property(c => c.Name).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Description).HasMaxLength(500);
+        builder.Property(c => c.Instruction).HasMaxLength(2000);
 
         builder.Property(c => c.CreatedAt).HasColumnType("timestamptz");
         builder.Property(c => c.UpdatedAt).HasColumnType("timestamptz");

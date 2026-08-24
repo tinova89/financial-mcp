@@ -3,10 +3,10 @@ using MediatR;
 namespace FinancialMcp.Application.Categories.LookupCategory;
 
 /// <summary>
-/// Resolves a category from a transaction description via the learned description→category
-/// mapping table (see IDescriptionCategoryMappingRecorder). Corresponds to the MCP tool
-/// `lookup_category`. Null result means no mapping has been learned for this description yet.
+/// Lists every category that currently carries an Instruction free-text hint. Corresponds
+/// to the MCP tool `lookup_category`. Instruction is set via `update_category_instruction`
+/// — it's no longer auto-learned from transaction descriptions.
 /// </summary>
-public sealed record LookupCategoryQuery(string Description) : IRequest<CategoryLookupResultDto?>;
+public sealed record LookupCategoryQuery : IRequest<IReadOnlyList<CategoryInstructionDto>>;
 
-public sealed record CategoryLookupResultDto(Guid CategoryId, string ParentCategory, string? Subcategory);
+public sealed record CategoryInstructionDto(Guid CategoryId, string ParentCategory, string? Subcategory, string Instruction);

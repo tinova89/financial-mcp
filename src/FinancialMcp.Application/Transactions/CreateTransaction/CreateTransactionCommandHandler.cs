@@ -13,8 +13,7 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 public sealed class CreateTransactionCommandHandler(
     IApplicationDbContext db,
     ITransactionCategoryResolver categoryResolver,
-    ICategoryBudgetRemainingCalculator budgetRemainingCalculator,
-    IDescriptionCategoryMappingRecorder descriptionCategoryMappingRecorder)
+    ICategoryBudgetRemainingCalculator budgetRemainingCalculator)
     : IRequestHandler<CreateTransactionCommand, TransactionDto>
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
@@ -37,10 +36,6 @@ public sealed class CreateTransactionCommandHandler(
         };
 
         await categoryResolver.ResolveAsync(transaction, cancellationToken);
-
-        // Fire-and-forget: learns the description→category association without adding to
-        // this call's latency (see IDescriptionCategoryMappingRecorder).
-        descriptionCategoryMappingRecorder.Record(transaction.Description, transaction.CategoryId);
 
         db.Transactions.Add(transaction);
 

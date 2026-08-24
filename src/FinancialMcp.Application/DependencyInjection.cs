@@ -38,10 +38,6 @@ public static class DependencyInjection
         services.AddScoped<ITransactionCategoryResolver, TransactionCategoryResolver>();
         services.AddScoped<ICategoryBudgetRemainingCalculator, CategoryBudgetRemainingCalculator>();
 
-        // Singleton: only holds an IServiceScopeFactory, used to open independent scopes
-        // for its background work (see DescriptionCategoryMappingRecorder doc comment).
-        services.AddSingleton<IDescriptionCategoryMappingRecorder, DescriptionCategoryMappingRecorder>();
-
         return services;
     }
 }

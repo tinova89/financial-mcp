@@ -5,19 +5,20 @@ using Microsoft.EntityFrameworkCore;
 namespace FinancialMcp.Application.Categories.LookupCategory;
 
 public sealed class LookupCategoryQueryHandler(IApplicationDbContext db)
-    : IRequestHandler<LookupCategoryQuery, CategoryLookupResultDto?>
+    : IRequestHandler<LookupCategoryQuery, IReadOnlyList<CategoryInstructionDto>>
 {
-    public async Task<CategoryLookupResultDto?> Handle(LookupCategoryQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CategoryInstructionDto>> Handle(LookupCategoryQuery request, CancellationToken cancellationToken)
     {
-        var normalizedDescription = request.Description.Trim();
-
-        var mapping = await db.DescriptionCategoryMappings
+        var categories = await db.TransactionCategories
             .AsNoTracking()
-            .Include(m => m.Category).ThenInclude(c => c.ParentCategory)
-            .FirstOrDefaultAsync(m => m.Description.ToLower() == normalizedDescription.ToLower(), cancellationToken);
+            .Include(c => c.ParentCategory)
+            .Where(c => c.Instruction != null)
+            .ToListAsync(cancellationToken);
 
-        return mapping is null
-            ? null
-            : new CategoryLookupResultDto(mapping.CategoryId, mapping.Category.ParentCategoryName, mapping.Category.Subcategory);
+        return categories
+            .Select(c => new CategoryInstructionDto(c.Id, c.ParentCategoryName, c.Subcategory, c.Instruction!))
+            .OrderBy(c => c.ParentCategory)
+            .ThenBy(c => c.Subcategory)
+            .ToList();
     }
 }
