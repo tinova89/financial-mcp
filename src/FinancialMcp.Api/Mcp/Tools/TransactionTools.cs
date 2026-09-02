@@ -2,8 +2,8 @@ using System.ComponentModel;
 using FinancialMcp.Application.Transactions.CreateTransaction;
 using FinancialMcp.Application.Transactions.DeleteTransaction;
 using FinancialMcp.Application.Transactions.GetTransaction;
+using FinancialMcp.Application.Transactions.ConfirmTransaction;
 using FinancialMcp.Application.Transactions.ListTransactions;
-using FinancialMcp.Application.Transactions.ReconcileTransaction;
 using FinancialMcp.Application.Transactions.UpdateTransaction;
 using FinancialMcp.Domain.Enums;
 using MediatR;
@@ -38,7 +38,7 @@ public sealed class TransactionTools(IMediator mediator)
           transactions) or a credit card's own id (for that card's transactions) — both
           use the same `accountId` field on a transaction. Optional.
         - **year** / **month** — Filter by the transaction's *reference* month/year
-          (`ReconciledDate` for checking-account rows, `InvoiceDueDate` for credit-card
+          (`ConfirmedDate` for checking-account rows, `InvoiceDueDate` for credit-card
           rows — see `get_budget_status` for why these differ). Optional.
         - **page** — 1-based page number. Optional, defaults to `1`.
         - **pageSize** — Items per page. Optional, defaults to `50`.
@@ -92,7 +92,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Returns
         The matching `TransactionDto` (id, type, status, description, amount, rawCategory,
-        expectedDate, actualDate, reconciledDate, invoiceDueDate, recurrence,
+        expectedDate, actualDate, confirmedDate, invoiceDueDate, recurrence,
         currentInstallment, totalInstallments, accountId, needsConfirmation).
         `needsConfirmation` is `true` for an overdue `Scheduled` transaction. `remainingBudget`/
         `remainingBudgetPercentage` are always `null` here — only create/update/delete
@@ -118,7 +118,7 @@ public sealed class TransactionTools(IMediator mediator)
           the string, split on `/`). Required. Up to 256 characters.
         - **expectedDate** — The statement's "Data prevista". Required.
         - **actualDate** — The statement's "Data efetiva". Optional.
-        - **reconciledDate** — Set when a checking-account row is confirmed. Required when
+        - **confirmedDate** — Set when a checking-account row is confirmed. Required when
           `status = 3` (`Confirmed`); optional otherwise.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
           ("Venc. Fatura").
@@ -157,7 +157,7 @@ public sealed class TransactionTools(IMediator mediator)
         the goal amount minus Gasto_Real for the transaction's reference month, counting this
         new transaction. Both are `null` when no budget goal is in effect for that
         category/month (or the transaction has no resolvable reference month yet, e.g. an
-        unreconciled checking-account row with no `reconciledDate`).
+        unconfirmed checking-account row with no `confirmedDate`).
         """)]
     public Task<TransactionDto> CreateTransactionAsync(CreateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
@@ -175,7 +175,7 @@ public sealed class TransactionTools(IMediator mediator)
           Moving into `Scheduled`/`Confirmed` stamps `scheduledAt`/`confirmedAt` once.
         - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional. Up to 256 characters.
         - **amount** — New amount. Optional.
-        - **expectedDate** / **actualDate** / **reconciledDate** / **invoiceDueDate** — New
+        - **expectedDate** / **actualDate** / **confirmedDate** / **invoiceDueDate** — New
           dates. Optional.
 
         ## Not patchable here
@@ -188,7 +188,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 3, "reconciledDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 3, "confirmedDate": "2026-08-10" }
         ```
         (`status: 3` = Confirmed.)
 
@@ -232,40 +232,40 @@ public sealed class TransactionTools(IMediator mediator)
     public Task<TransactionDto> DeleteTransactionAsync(Guid transactionId, bool confirm, CancellationToken cancellationToken = default) =>
         mediator.Send(new DeleteTransactionCommand(transactionId, confirm), cancellationToken);
 
-    [McpServerTool(Name = "reconcile_transaction"), Description(
+    [McpServerTool(Name = "confirm_transaction"), Description(
         """
         Marks a transaction as `Confirmed` — the checking-account equivalent of "Conciliado"
         (Card #14 renamed the status) or the analogous confirmed state for a credit-card entry.
 
         ## Parameters
-        - **transactionId** — `Guid` of the transaction to reconcile. Required.
-        - **reconciledDate** — Date to record as the reconciliation date. Optional; defaults
+        - **transactionId** — `Guid` of the transaction to confirm. Required.
+        - **confirmedDate** — Date to record as the confirmation date. Optional; defaults
           to today (UTC) when omitted.
 
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
         - Always sets `status = Confirmed` and stamps `confirmedAt` (once).
-        - Only sets `reconciledDate` when the transaction's account is a plain checking
+        - Only sets `confirmedDate` when the transaction's account is a plain checking
           account (`Account.Kind != Credit`) — for a credit-card-sourced transaction,
-          `reconciledDate` is left untouched since the relevant reference date for that row
-          is `invoiceDueDate`, not `reconciledDate`.
-        - Publishes a `TransactionReconciledNotification` afterwards, which downstream
+          `confirmedDate` is left untouched since the relevant reference date for that row
+          is `invoiceDueDate`, not `confirmedDate`.
+        - Publishes a `TransactionConfirmedNotification` afterwards, which downstream
           handlers can use to recalculate cached budget status or notify other clients —
           this doesn't block or change the response of this call.
         - Non-destructive; no confirmation is required.
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "reconciledDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "confirmedDate": "2026-08-10" }
         ```
 
         ## Returns
-        A confirmation message string ("Transação conciliada.").
+        A confirmation message string ("Transação confirmada.").
         """)]
-    public async Task<string> ReconcileTransactionAsync(
-        Guid transactionId, DateOnly? reconciledDate = null, CancellationToken cancellationToken = default)
+    public async Task<string> ConfirmTransactionAsync(
+        Guid transactionId, DateOnly? confirmedDate = null, CancellationToken cancellationToken = default)
     {
-        await mediator.Send(new ReconcileTransactionCommand(transactionId, reconciledDate), cancellationToken);
-        return "Transação conciliada.";
+        await mediator.Send(new ConfirmTransactionCommand(transactionId, confirmedDate), cancellationToken);
+        return "Transação confirmada.";
     }
 }

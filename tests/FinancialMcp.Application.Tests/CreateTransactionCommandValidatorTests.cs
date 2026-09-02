@@ -35,7 +35,7 @@ public class CreateTransactionCommandValidatorTests
         RawCategory: rawCategory ?? "Mercado",
         ExpectedDate: new DateOnly(2026, 9, 2),
         ActualDate: null,
-        ReconciledDate: null,
+        ConfirmedDate: null,
         InvoiceDueDate: null,
         Recurrence: RecurrenceType.None,
         CurrentInstallment: null,

@@ -194,6 +194,9 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ConfirmedAt")
                         .HasColumnType("timestamptz");
 
+                    b.Property<DateOnly?>("ConfirmedDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamptz");
 
@@ -216,9 +219,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
-
-                    b.Property<DateOnly?>("ReconciledDate")
-                        .HasColumnType("date");
 
                     b.Property<int>("Recurrence")
                         .HasColumnType("integer");
@@ -246,11 +246,11 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_transactions_category_id");
 
+                    b.HasIndex("ConfirmedDate")
+                        .HasDatabaseName("ix_transactions_confirmed_date");
+
                     b.HasIndex("InvoiceDueDate")
                         .HasDatabaseName("ix_transactions_invoice_due_date");
-
-                    b.HasIndex("ReconciledDate")
-                        .HasDatabaseName("ix_transactions_reconciled_date");
 
                     b.HasIndex("AccountId", "TotalInstallments")
                         .HasDatabaseName("ix_transactions_account_total_installments");
@@ -324,6 +324,9 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("ConfirmedDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamptz");
 
@@ -339,9 +342,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                         .HasColumnType("date");
 
                     b.Property<DateOnly?>("InvoiceDueDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly?>("ReconciledDate")
                         .HasColumnType("date");
 
                     b.Property<int>("Recurrence")

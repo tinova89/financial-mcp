@@ -6,12 +6,12 @@ using FinancialMcp.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinancialMcp.Application.Transactions.ReconcileTransaction;
+namespace FinancialMcp.Application.Transactions.ConfirmTransaction;
 
-public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db, IPublisher publisher)
-    : IRequestHandler<ReconcileTransactionCommand>
+public sealed class ConfirmTransactionCommandHandler(IApplicationDbContext db, IPublisher publisher)
+    : IRequestHandler<ConfirmTransactionCommand>
 {
-    public async Task Handle(ReconcileTransactionCommand request, CancellationToken cancellationToken)
+    public async Task Handle(ConfirmTransactionCommand request, CancellationToken cancellationToken)
     {
         var t = await db.Transactions
             .Include(x => x.Account)
@@ -22,15 +22,15 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
             throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
-        // Reconciling = the transaction actually happened → Confirmed (Card #14), stamping ConfirmedAt.
+        // Confirming = the transaction actually happened → Confirmed (Card #14), stamping ConfirmedAt.
         t.TransitionTo(TransactionStatus.Confirmed, DateTimeOffset.UtcNow);
 
         if (t.Account.Kind != FinancialAccountKind.Credit)
         {
-            t.ReconciledDate = request.ReconciledDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            t.ConfirmedDate = request.ConfirmedDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         }
 
         // Published after the in-memory change; the actual commit happens in TransactionBehavior.
-        await publisher.Publish(new TransactionReconciledNotification(t.Id), cancellationToken);
+        await publisher.Publish(new TransactionConfirmedNotification(t.Id), cancellationToken);
     }
 }

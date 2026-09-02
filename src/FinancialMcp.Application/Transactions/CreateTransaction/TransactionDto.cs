@@ -26,7 +26,7 @@ public sealed record TransactionDto(
     string RawCategory,
     DateOnly ExpectedDate,
     DateOnly? ActualDate,
-    DateOnly? ReconciledDate,
+    DateOnly? ConfirmedDate,
     DateOnly? InvoiceDueDate,
     string? Recurrence,
     int? CurrentInstallment,

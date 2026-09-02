@@ -59,7 +59,7 @@ dotnet build
 ```bash
 dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persistence --startup-project src/FinancialMcp.Api
 ```
-`dotnet ef` is pinned to the EF Core 10 line via the local tool manifest (`.config/dotnet-tools.json`) — run `dotnet tool restore` first if needed. The Postgres connection string is injected by Aspire (`ConnectionStrings__financialmcp-db` variable); don't hardcode host/port/credentials in `appsettings.json` — only local development defaults, if needed. Migrations that remap or backfill data (e.g. `Card14TransactionStatuses`) carry their own `migrationBuilder.Sql(...)` steps in addition to the scaffolded schema changes.
+`dotnet ef` is pinned to the EF Core 10 line via the local tool manifest (`.config/dotnet-tools.json`) — run `dotnet tool restore` first if needed. The Postgres connection string is injected by Aspire (`ConnectionStrings__financialmcp-db` variable); don't hardcode host/port/credentials in `appsettings.json` — only local development defaults, if needed. Migrations that remap or backfill data carry their own `migrationBuilder.Sql(...)` steps in addition to the scaffolded schema changes.
 
 ## Architecture
 
@@ -72,10 +72,10 @@ dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persis
   - **`TransactionTools`**
     - `list_transactions` — lists transactions with filters: `periodStart`/`periodEnd` (required, inclusive `ExpectedDate` range), `type`/`status` (optional enums, see below), `category`/`subcategory`, `accountId` (checking account or credit card), `year`/`month` (reference month, see [Budget goals](#budget-goals-get_budget_status)), `page`/`pageSize`. Read-only, paginated, ordered by `expectedDate` descending. Each item carries `needsConfirmation` (see below).
     - `get_transaction` — full detail of a single transaction by `transactionId`. Read-only.
-    - `create_transaction` — inserts a new transaction (checking account or credit card), honoring the required fields for each statement type (`invoiceDueDate` required for credit-card `accountId`s, installment fields required when `recurrence = Installment`, `reconciledDate` required when `status = Confirmed`). Stamps the per-status timestamp for the initial status (`ScheduledAt`/`ConfirmedAt`). Non-destructive.
+    - `create_transaction` — inserts a new transaction (checking account or credit card), honoring the required fields for each statement type (`invoiceDueDate` required for credit-card `accountId`s, installment fields required when `recurrence = Installment`, `confirmedDate` required when `status = Confirmed`). Stamps the per-status timestamp for the initial status (`ScheduledAt`/`ConfirmedAt`). Non-destructive.
     - `update_transaction` — partial patch of an existing transaction (`status`, `rawCategory`, `amount`, dates); fields left `null` keep their stored value. A `status` change into `Scheduled`/`Confirmed` stamps `ScheduledAt`/`ConfirmedAt` once (never overwritten). `accountId`, `recurrence`, and installment fields aren't patchable here. Non-destructive.
     - `delete_transaction` — soft delete (`IsDeleted`/`DeletedAt`). **Destructive operation**: requires an explicit `confirm = true` argument, rejected by validation otherwise — always confirm with the caller first.
-    - `reconcile_transaction` — marks a transaction `Confirmed` (stamping `ConfirmedAt` once); sets `reconciledDate` only for checking-account transactions (credit-card rows key off `invoiceDueDate` instead). Publishes `TransactionReconciledNotification` afterwards. Non-destructive.
+    - `confirm_transaction` — marks a transaction `Confirmed` (stamping `ConfirmedAt` once); sets `confirmedDate` only for checking-account transactions (credit-card rows key off `invoiceDueDate` instead). Publishes `TransactionConfirmedNotification` afterwards. Non-destructive.
     - **`needsConfirmation`** — a computed boolean on every `TransactionDto` returned by `list_transactions`, `get_transaction`, `create_transaction`, `update_transaction` and `delete_transaction`: `true` when `Status = Scheduled` **and** `ExpectedDate < today` (the transaction was expected to have happened by now). Purely informational — nothing changes the status automatically. See `Transaction.NeedsConfirmation`.
   - **`CheckingAccountTools`** (formerly `AccountTools`/`list_accounts`/`get_account`) — **read-only** for financial accounts (checking, investment, wallet, etc.); never returns/operates on credit cards.
     - `list_checking_accounts` — every registered non-credit-card account, ordered by `displayName`, each including the `creditCardIds` whose bill is paid from it.
@@ -163,7 +163,7 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
 
 All MCP tools and REST endpoints must be **thin**: they only build the `IRequest`/`IRequest<TResponse>` and call `IMediator.Send(...)` (or `Publish` for notifications). No business rule should live in the MCP tool/handler or in the controller — the logic belongs to the MediatR handlers in `FinancialMcp.Application`.
 
-- **Explicit CQRS:** always separate into **Commands** (writes: `create_transaction`, `update_transaction`, `delete_transaction`, `reconcile_transaction`, `import_statement`, `create_category_budget`, plus the REST-only account/credit-card create/update/delete) and **Queries** (reads: `list_transactions`, `get_transaction`, `list_categories`, `lookup_category`, `get_budget_status`, `list_checking_accounts`, `get_checking_account`, `list_credit_cards`, `get_credit_card`).
+- **Explicit CQRS:** always separate into **Commands** (writes: `create_transaction`, `update_transaction`, `delete_transaction`, `confirm_transaction`, `import_statement`, `create_category_budget`, plus the REST-only account/credit-card create/update/delete) and **Queries** (reads: `list_transactions`, `get_transaction`, `list_categories`, `lookup_category`, `get_budget_status`, `list_checking_accounts`, `get_checking_account`, `list_credit_cards`, `get_credit_card`).
 - **Feature-based organization:** group each request + handler + validator (+ response DTO) in the same feature folder, not in loose generic `Commands/`, `Queries/`, `Handlers/` folders:
   ```
   FinancialMcp.Application/
@@ -190,7 +190,7 @@ All MCP tools and REST endpoints must be **thin**: they only build the `IRequest
   2. `ValidationBehavior<TRequest,TResponse>` — runs every `IValidator<TRequest>` (FluentValidation) before the handler; throws a custom `ValidationException` on failure, mapped to the appropriate MCP/HTTP error.
   3. `TransactionBehavior<TRequest,TResponse>` (only for Commands that write via EF Core) — opens a database transaction, runs the handler, commits/rolls back.
 - **Notifications (`INotification`)** for side effects decoupled from the main flow, without coupling the write handler to other modules' logic:
-  - E.g.: `TransactionReconciledNotification`, published by `ReconcileTransactionCommandHandler`, consumed by an `INotificationHandler` that recalculates cached `get_budget_status` or notifies clients via SignalR.
+  - E.g.: `TransactionConfirmedNotification`, published by `ConfirmTransactionCommandHandler`, consumed by an `INotificationHandler` that recalculates cached `get_budget_status` or notifies clients via SignalR.
   - Never use `Publish` for logic that needs a synchronous return value or that is a mandatory part of the business rule — that remains the responsibility of the main `Command`/`Handler`.
 - **Destructive operations:** `DeleteTransactionCommand` must carry an explicit confirmation field (e.g. `Confirm: bool`) validated by `ValidationBehavior`; the handler rejects execution if `Confirm != true`, reinforcing the rule of "never executing without explicit confirmation" (see [What Claude Should Avoid](#what-claude-should-avoid)).
 - **Registration:** `services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(FinancialMcp.Application.AssemblyMarker).Assembly))` centralized in `FinancialMcp.Application`, referenced from `FinancialMcp.Api` — never register MediatR assemblies directly in the API layer.
@@ -201,7 +201,7 @@ All MCP tools and REST endpoints must be **thin**: they only build the `IRequest
 - Specifically cover with tests:
   - `Gasto_Real` aggregation by parent category vs. full subcategory.
   - Exclusion of `Transferência`, `Pagamento`, and `Receita` from the budget goal calculation.
-  - Card #14: legacy→current `TransactionStatus` remap; `needsConfirmation` flagging for past/today/future `ExpectedDate`; `Gasto_Real` counting only `Confirmed`; the per-status timestamp stamped on each `TransitionTo`; free-text fields rejected above 256 chars. (`TransactionStatusRemapTests`, `TransactionTests`, `ActualSpendCalculatorTests`, `CreateTransactionCommandValidatorTests`.)
+  - Card #14: `needsConfirmation` flagging for past/today/future `ExpectedDate`; `Gasto_Real` counting only `Confirmed`; the per-status timestamp stamped on each `TransitionTo`; free-text fields rejected above 256 chars. (`TransactionTests`, `ActualSpendCalculatorTests`, `CreateTransactionCommandValidatorTests`.)
 - Use `TestServer` + a real MCP client (or equivalent) for integration tests of the exposed tools.
 - Frontend (if any): React Testing Library for components, mocking the MCP/SignalR connection instead of opening real sockets.
 
@@ -227,5 +227,5 @@ This `CLAUDE.md` is the entry point, but it doesn't need to hold everything — 
 - [x] Persistence store: **PostgreSQL** (EF Core + Npgsql, Aspire resource).
 - [x] Auth provider: **Custom JWT** (its own issuance/validation, no Identity/Entra ID).
 - [ ] **`approve_revision` MCP tool** (Card #14 follow-up): promote a `transaction_revisions` row onto its `transactions` row, copying `transaction_revisions.CreatedAt` verbatim into `Transaction.SubmittedForReviewAt` (never regenerated), and moving the transaction out of `Status = Revision`.
-- [ ] **`confirm_transaction` MCP tool** (Card #14 follow-up): move a `Scheduled` transaction to `Confirmed` (stamping `ConfirmedAt`), distinct from `reconcile_transaction` — intended for the `needsConfirmation` overdue flow.
+- [x] **`confirm_transaction` MCP tool** (Card #14.1): `reconcile_transaction` renamed to `confirm_transaction` — moves a transaction to `Confirmed`, stamping `ConfirmedAt` and (checking accounts only) `confirmedDate`. Pure rename; it still has **no** `Status = Scheduled` precondition — adding the `needsConfirmation`-overdue-only guard is a later follow-up if wanted.
 - [ ] **Revert-to-`Scheduled` MCP tool** (Card #14 follow-up): move a `Confirmed` transaction back to `Scheduled` (leaving the already-stamped `ConfirmedAt` untouched, per `TransitionTo`'s "stamp once" rule).

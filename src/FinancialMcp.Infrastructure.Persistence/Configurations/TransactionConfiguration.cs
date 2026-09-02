@@ -32,7 +32,7 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
 
         builder.Property(t => t.ExpectedDate).HasColumnType("date").IsRequired();
         builder.Property(t => t.ActualDate).HasColumnType("date");
-        builder.Property(t => t.ReconciledDate).HasColumnType("date");
+        builder.Property(t => t.ConfirmedDate).HasColumnType("date");
         builder.Property(t => t.InvoiceDueDate).HasColumnType("date");
 
         builder.Property(t => t.CreatedAt).HasColumnType("timestamptz");
@@ -61,8 +61,8 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
         builder.HasIndex(t => new { t.Status, t.Type })
             .HasDatabaseName("ix_transactions_status_type");
 
-        builder.HasIndex(t => t.ReconciledDate)
-            .HasDatabaseName("ix_transactions_reconciled_date");
+        builder.HasIndex(t => t.ConfirmedDate)
+            .HasDatabaseName("ix_transactions_confirmed_date");
 
         // Speeds up installment/card-statement-cycle lookups by account — AccountId
         // identifies the specific card for credit-card-sourced transactions too, since a

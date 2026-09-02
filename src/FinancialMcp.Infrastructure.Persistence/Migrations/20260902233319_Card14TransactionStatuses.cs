@@ -1,33 +1,25 @@
-using System;
-using FinancialMcp.Domain.Enums;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace FinancialMcp.Infrastructure.Persistence.Migrations
 {
-    /// <summary>
-    /// Card #14 — new transaction statuses (Revision / Scheduled / Confirmed).
-    ///
-    /// Schema: shrinks every free-text field on <c>transactions</c> to <c>varchar(256)</c>,
-    /// adds the per-status timestamps (<c>SubmittedForReviewAt</c>/<c>ScheduledAt</c>/
-    /// <c>ConfirmedAt</c>), and creates <c>transaction_revisions</c>.
-    ///
-    /// Data: truncates any over-long description, remaps the stored <c>Status</c> values
-    /// (<c>Conciliado</c> → <c>Confirmed</c>, <c>Agendado</c>/<c>Nconciliado</c> → <c>Scheduled</c>,
-    /// via <see cref="TransactionStatusRemap"/>), and backfills <c>ConfirmedAt</c>/<c>ScheduledAt</c>
-    /// for existing rows from the best available existing date column. Nothing maps to
-    /// <c>Revision</c>, so <c>SubmittedForReviewAt</c> stays null for every existing row.
-    /// </summary>
+    /// <inheritdoc />
     public partial class Card14TransactionStatuses : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Trim descriptions that won't fit the new 256-char column before altering it,
-            // so the ALTER can't fail on legacy data.
-            migrationBuilder.Sql(
-                "UPDATE transactions SET \"Description\" = left(\"Description\", 256) WHERE length(\"Description\") > 256;");
+            migrationBuilder.RenameColumn(
+                name: "ReconciledDate",
+                table: "transactions",
+                newName: "ConfirmedDate");
+
+            migrationBuilder.RenameIndex(
+                name: "ix_transactions_reconciled_date",
+                table: "transactions",
+                newName: "ix_transactions_confirmed_date");
 
             migrationBuilder.AlterColumn<string>(
                 name: "Description",
@@ -57,22 +49,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                 type: "timestamptz",
                 nullable: true);
 
-            // Remap legacy status values to the Card #14 enum (single source of truth: TransactionStatusRemap).
-            migrationBuilder.Sql(
-                $"UPDATE transactions SET \"Status\" = {TransactionStatusRemap.ToSqlCase("\"Status\"")};");
-
-            // Backfill the per-status timestamps for existing rows from the best available date column.
-            migrationBuilder.Sql(
-                $"UPDATE transactions SET \"ConfirmedAt\" = COALESCE(" +
-                "\"ReconciledDate\"::timestamptz, \"InvoiceDueDate\"::timestamptz, " +
-                "\"ActualDate\"::timestamptz, \"ExpectedDate\"::timestamptz, \"CreatedAt\") " +
-                $"WHERE \"Status\" = {(int)TransactionStatus.Confirmed} AND \"ConfirmedAt\" IS NULL;");
-
-            migrationBuilder.Sql(
-                $"UPDATE transactions SET \"ScheduledAt\" = COALESCE(" +
-                "\"ExpectedDate\"::timestamptz, \"ActualDate\"::timestamptz, \"CreatedAt\") " +
-                $"WHERE \"Status\" = {(int)TransactionStatus.Scheduled} AND \"ScheduledAt\" IS NULL;");
-
             migrationBuilder.CreateTable(
                 name: "transaction_revisions",
                 columns: table => new
@@ -86,7 +62,7 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
                     CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
                     ExpectedDate = table.Column<DateOnly>(type: "date", nullable: false),
                     ActualDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    ReconciledDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    ConfirmedDate = table.Column<DateOnly>(type: "date", nullable: true),
                     InvoiceDueDate = table.Column<DateOnly>(type: "date", nullable: true),
                     Recurrence = table.Column<int>(type: "integer", nullable: false),
                     CurrentInstallment = table.Column<int>(type: "integer", nullable: true),
@@ -139,13 +115,6 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
             migrationBuilder.DropTable(
                 name: "transaction_revisions");
 
-            // Best-effort reverse remap: Confirmed → legacy Reconciled (1); Scheduled stays 2.
-            // The legacy Reconciled/Unreconciled split is not recoverable — every pre-migration
-            // Scheduled or Unreconciled row is now Scheduled.
-            migrationBuilder.Sql(
-                $"UPDATE transactions SET \"Status\" = {TransactionStatusRemap.LegacyReconciled} " +
-                $"WHERE \"Status\" = {(int)TransactionStatus.Confirmed};");
-
             migrationBuilder.DropColumn(
                 name: "ConfirmedAt",
                 table: "transactions");
@@ -157,6 +126,16 @@ namespace FinancialMcp.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "SubmittedForReviewAt",
                 table: "transactions");
+
+            migrationBuilder.RenameColumn(
+                name: "ConfirmedDate",
+                table: "transactions",
+                newName: "ReconciledDate");
+
+            migrationBuilder.RenameIndex(
+                name: "ix_transactions_confirmed_date",
+                table: "transactions",
+                newName: "ix_transactions_reconciled_date");
 
             migrationBuilder.AlterColumn<string>(
                 name: "Description",

@@ -16,7 +16,7 @@ public sealed record CreateTransactionCommand(
     string RawCategory,        // "Categoria-mãe/Subcategoria"
     DateOnly ExpectedDate,
     DateOnly? ActualDate,
-    DateOnly? ReconciledDate,
+    DateOnly? ConfirmedDate,
     DateOnly? InvoiceDueDate,
     RecurrenceType Recurrence,
     int? CurrentInstallment,

@@ -82,7 +82,7 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         t.Category.FullName,
         t.ExpectedDate,
         t.ActualDate,
-        t.ReconciledDate,
+        t.ConfirmedDate,
         t.InvoiceDueDate,
         t.Recurrence.ToString(),
         t.CurrentInstallment,

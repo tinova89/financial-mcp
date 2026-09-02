@@ -28,7 +28,7 @@ internal class AccountMap : ClassMap<Transaction>
         // Checking-account only (see CLAUDE.md > Budget goals, item 3). Harmless for
         // credit-card rows: the "Data Conciliado" column simply doesn't exist there,
         // so with MissingFieldFound suppressed this just stays null.
-        Map(m => m.ReconciledDate).Name("Data Conciliado").TypeConverter<OptionalDdMmYyyyDateConverter>();
+        Map(m => m.ConfirmedDate).Name("Data Conciliado").TypeConverter<OptionalDdMmYyyyDateConverter>();
     }
 }
 
@@ -57,7 +57,7 @@ internal sealed class TransactionTypeConverter : DefaultTypeConverter
 
 internal sealed class TransactionStatusConverter : DefaultTypeConverter
 {
-    // Card #14 status remap (see TransactionStatusRemap): "Conciliado" → Confirmed,
+    // Statement status text → Card #14 status: "Conciliado" → Confirmed,
     // "Agendado"/"Nconciliado" → Scheduled. import_statement behaviour is otherwise unchanged.
     private static readonly Dictionary<string, TransactionStatus> StatusByCsvValue = new(StringComparer.OrdinalIgnoreCase)
     {

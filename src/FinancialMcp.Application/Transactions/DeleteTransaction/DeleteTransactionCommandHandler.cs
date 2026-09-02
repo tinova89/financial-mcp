@@ -40,7 +40,7 @@ public sealed class DeleteTransactionCommandHandler(IApplicationDbContext db, IC
             transaction.Category.FullName,
             transaction.ExpectedDate,
             transaction.ActualDate,
-            transaction.ReconciledDate,
+            transaction.ConfirmedDate,
             transaction.InvoiceDueDate,
             transaction.Recurrence.ToString(),
             transaction.CurrentInstallment,

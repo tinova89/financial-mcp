@@ -23,7 +23,7 @@ public sealed class GetTransactionQueryHandler(IApplicationDbContext db)
 
         return new TransactionDto(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
-            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
+            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ConfirmedDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId,
             t.NeedsConfirmation(DateOnly.FromDateTime(DateTime.UtcNow)));
     }

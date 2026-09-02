@@ -16,5 +16,5 @@ public sealed record UpdateTransactionCommand(
     decimal? Amount = null,
     DateOnly? ExpectedDate = null,
     DateOnly? ActualDate = null,
-    DateOnly? ReconciledDate = null,
+    DateOnly? ConfirmedDate = null,
     DateOnly? InvoiceDueDate = null) : IRequest<TransactionDto>, ITransactionalRequest;

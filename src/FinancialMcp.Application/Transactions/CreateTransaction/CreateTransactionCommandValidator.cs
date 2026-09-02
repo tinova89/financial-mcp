@@ -24,7 +24,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
-        RuleFor(x => x.ReconciledDate).NotNull()
+        RuleFor(x => x.ConfirmedDate).NotNull()
             .When(x => x.Status == TransactionStatus.Confirmed)
             .WithMessage("DataConciliado é obrigatório quando Status = Confirmed.");
 

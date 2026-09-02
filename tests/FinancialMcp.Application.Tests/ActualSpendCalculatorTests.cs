@@ -20,7 +20,7 @@ public class ActualSpendCalculatorTests
         Type = TransactionType.Expense,
         Status = status,
         Amount = amount,
-        ReconciledDate = new DateOnly(2026, 8, 15),
+        ConfirmedDate = new DateOnly(2026, 8, 15),
         Account = new Account(),                                  // checking account (Kind = Debit)
         Category = new TransactionCategory { Name = parentCategory }
     };
@@ -45,7 +45,7 @@ public class ActualSpendCalculatorTests
     public void Ignores_confirmed_expenses_in_a_different_month()
     {
         var julyExpense = Expense(TransactionStatus.Confirmed, -300m);
-        julyExpense.ReconciledDate = new DateOnly(2026, 7, 31);
+        julyExpense.ConfirmedDate = new DateOnly(2026, 7, 31);
 
         var transactions = new[] { Expense(TransactionStatus.Confirmed, -120m), julyExpense };
 
