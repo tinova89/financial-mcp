@@ -46,6 +46,7 @@ public sealed class DeleteTransactionCommandHandler(IApplicationDbContext db, IC
             transaction.CurrentInstallment,
             transaction.TotalInstallments,
             transaction.AccountId,
+            transaction.NeedsConfirmation(DateOnly.FromDateTime(DateTime.UtcNow)),
             budgetRemaining.RemainingBudget,
             budgetRemaining.RemainingBudgetPercentage);
     }

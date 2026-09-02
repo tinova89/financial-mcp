@@ -24,9 +24,9 @@ public sealed class BudgetTools(IMediator mediator)
 
         ## Behavior
         - Read-only.
-        - Only counts transactions with `Status = Reconciled` and `Type = Expense` — never
-          `Income`, `Transfer`, or `Payment` (the checking account's "Pagamento de cartão"
-          entry is excluded so credit-card spending isn't double-counted).
+        - Only counts transactions with `Status = Confirmed` and `Type = Expense` — never
+          `Revision`, `Scheduled`, `Income`, `Transfer`, or `Payment` (the checking account's
+          "Pagamento de cartão" entry is excluded so credit-card spending isn't double-counted).
         - The reference month is `ReconciledDate` for checking-account transactions and
           `InvoiceDueDate` for credit-card transactions (`Transaction.GetReferenceMonthYear()`,
           driven by `Account.Kind`, not a stored transaction flag).

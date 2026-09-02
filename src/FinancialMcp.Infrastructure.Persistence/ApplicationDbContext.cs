@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     : DbContext(options), IApplicationDbContext
 {
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<TransactionRevision> TransactionRevisions => Set<TransactionRevision>();
     public DbSet<TransactionCategory> TransactionCategories => Set<TransactionCategory>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<CreditCard> CreditCards => Set<CreditCard>();
@@ -29,6 +30,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.Entity<TransactionCategory>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<Account>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<BudgetGoal>().HasQueryFilter(m => !m.IsDeleted);
+
+        // TransactionRevision has no soft-delete state of its own; it follows its parent
+        // transaction. A matching filter also silences the required-navigation/query-filter
+        // model-validation warning against the (filtered) Transaction/Account/Category ends.
+        modelBuilder.Entity<TransactionRevision>().HasQueryFilter(r => !r.Transaction.IsDeleted);
 
         base.OnModelCreating(modelBuilder);
     }

@@ -57,11 +57,13 @@ internal sealed class TransactionTypeConverter : DefaultTypeConverter
 
 internal sealed class TransactionStatusConverter : DefaultTypeConverter
 {
+    // Card #14 status remap (see TransactionStatusRemap): "Conciliado" → Confirmed,
+    // "Agendado"/"Nconciliado" → Scheduled. import_statement behaviour is otherwise unchanged.
     private static readonly Dictionary<string, TransactionStatus> StatusByCsvValue = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Conciliado"] = TransactionStatus.Reconciled,
+        ["Conciliado"] = TransactionStatus.Confirmed,
         ["Agendado"] = TransactionStatus.Scheduled,
-        ["Nconciliado"] = TransactionStatus.Unreconciled
+        ["Nconciliado"] = TransactionStatus.Scheduled
     };
 
     public override object ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)

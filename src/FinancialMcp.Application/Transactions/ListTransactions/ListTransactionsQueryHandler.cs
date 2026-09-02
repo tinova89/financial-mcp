@@ -59,19 +59,21 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         // Subcategory/Year/Month filters depend on the Category value object and the
         // reference MonthYear calculated in memory (Data Conciliado vs. Venc. Fatura).
         var filteredItems = transactions
             .Where(t => request.Subcategory is null || t.Category.Subcategory == request.Subcategory)
             .Where(t => (request.Year is null || request.Year <= 0) || t.GetReferenceMonthYear()?.Year == request.Year)
             .Where(t => (request.Month is null || request.Month <= 0) || t.GetReferenceMonthYear()?.Month == request.Month)
-            .Select(Map)
+            .Select(t => Map(t, today))
             .ToList();
 
         return new PagedResult<TransactionDto>(filteredItems, request.Page, request.PageSize, totalCount);
     }
 
-    private static TransactionDto Map(Transaction t) => new(
+    private static TransactionDto Map(Transaction t, DateOnly today) => new(
         t.Id,
         t.Type.ToString(),
         t.Status.ToString(),
@@ -85,5 +87,6 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         t.Recurrence.ToString(),
         t.CurrentInstallment,
         t.TotalInstallments,
-        t.AccountId);
+        t.AccountId,
+        t.NeedsConfirmation(today));
 }

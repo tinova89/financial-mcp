@@ -12,6 +12,11 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 /// still unspent) — null under the same conditions as RemainingBudget, or when the goal
 /// amount is zero.
 /// </param>
+/// <param name="NeedsConfirmation">
+/// True when <c>Status = Scheduled</c> and <c>ExpectedDate</c> is before today — the
+/// transaction was expected to have happened by now and likely needs confirming. Purely
+/// informational; the status is never changed automatically (Card #14).
+/// </param>
 public sealed record TransactionDto(
     Guid Id,
     string Type,
@@ -27,5 +32,6 @@ public sealed record TransactionDto(
     int? CurrentInstallment,
     int? TotalInstallments,
     Guid AccountId,
+    bool NeedsConfirmation,
     decimal? RemainingBudget = null,
     decimal? RemainingBudgetPercentage = null);

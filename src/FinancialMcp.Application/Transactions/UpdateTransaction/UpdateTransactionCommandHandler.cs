@@ -25,7 +25,10 @@ public sealed class UpdateTransactionCommandHandler(
             throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
-        if (request.Status is not null) t.Status = request.Status.Value;
+        var now = DateTimeOffset.UtcNow;
+
+        // Stamps ScheduledAt/ConfirmedAt the first time that status is entered (Card #14).
+        if (request.Status is not null) t.TransitionTo(request.Status.Value, now);
 
         if (request.RawCategory is not null)
         {
@@ -39,7 +42,7 @@ public sealed class UpdateTransactionCommandHandler(
         if (request.ReconciledDate is not null) t.ReconciledDate = request.ReconciledDate;
         if (request.InvoiceDueDate is not null) t.InvoiceDueDate = request.InvoiceDueDate;
 
-        t.UpdatedAt = DateTimeOffset.UtcNow;
+        t.UpdatedAt = now;
 
         var budgetRemaining = await budgetRemainingCalculator.CalculateAsync(t, includeTransaction: true, cancellationToken);
 
@@ -47,6 +50,7 @@ public sealed class UpdateTransactionCommandHandler(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
             t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ReconciledDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId,
+            t.NeedsConfirmation(DateOnly.FromDateTime(now.UtcDateTime)),
             budgetRemaining.RemainingBudget, budgetRemaining.RemainingBudgetPercentage);
     }
 }

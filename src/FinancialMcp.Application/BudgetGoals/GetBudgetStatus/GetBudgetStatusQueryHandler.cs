@@ -1,4 +1,5 @@
 using FinancialMcp.Application.Common.Interfaces;
+using FinancialMcp.Application.Common.Services;
 using FinancialMcp.Domain.Entities;
 using FinancialMcp.Domain.Enums;
 using FinancialMcp.Domain.ValueObjects;
@@ -10,7 +11,7 @@ namespace FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
 /// <summary>
 /// Single handler for GetBudgetStatusQuery. Implements exactly the rules from
 /// CLAUDE.md > Business Rules > Budget goals:
-///  1. Only Status = Conciliado.
+///  1. Only Status = Confirmed (Card #14; formerly Conciliado).
 ///  2. Only Tipo = Despesa (never Receita/Transferência/Pagamento).
 ///  3. Mês_Ano: "Data Conciliado" (checking account) / "Venc. Fatura" (credit card).
 ///  4. Gasto_Real / Saldo_Meta / % Utilizado.
@@ -44,7 +45,7 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
             return [];
         }
 
-        // Brings in a reasonable universe of candidates (Expense + Reconciled) and filters the
+        // Brings in a reasonable universe of candidates (Expense + Confirmed) and filters the
         // reference Mês_Ano in memory, since it depends on which date column to use based on
         // Account.Kind (a rule that isn't directly translatable to plain SQL without duplicating
         // logic — kept centralized in Transaction.GetReferenceMonthYear()). Include(Account) is
@@ -53,7 +54,7 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
             .AsNoTracking()
             .Include(t => t.Account)
             .Include(t => t.Category).ThenInclude(c => c.ParentCategory)
-            .Where(t => t.Status == TransactionStatus.Reconciled && t.Type == TransactionType.Expense)
+            .Where(t => t.Status == TransactionStatus.Confirmed && t.Type == TransactionType.Expense)
             .ToListAsync(cancellationToken);
 
         var monthExpenses = candidates
@@ -70,7 +71,8 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
                 .Where(t => string.Equals(t.Category.ParentCategoryName, goal.RawCategory.Name, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var actualSpent = categoryExpenses.Sum(t => Math.Abs(t.Amount));
+            var actualSpent = ActualSpendCalculator.SumForCategoryMonth(
+                categoryExpenses, goal.RawCategory.Name, targetMonthYear);
             var remainingBudget = goal.BudgetAmount - actualSpent;
             decimal? utilizationPercentage = goal.BudgetAmount == 0m ? null : actualSpent / goal.BudgetAmount;
 

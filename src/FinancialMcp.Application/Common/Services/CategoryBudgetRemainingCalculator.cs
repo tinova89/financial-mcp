@@ -43,7 +43,7 @@ public sealed class CategoryBudgetRemainingCalculator(IApplicationDbContext db) 
             .AsNoTracking()
             .Include(t => t.Account)
             .Include(t => t.Category).ThenInclude(c => c.ParentCategory)
-            .Where(t => t.Id != transaction.Id && t.Status == TransactionStatus.Reconciled && t.Type == TransactionType.Expense)
+            .Where(t => t.Id != transaction.Id && t.Status == TransactionStatus.Confirmed && t.Type == TransactionType.Expense)
             .ToListAsync(cancellationToken);
 
         var actualSpent = otherExpenses

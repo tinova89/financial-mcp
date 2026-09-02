@@ -15,17 +15,18 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 {
     public CreateTransactionCommandValidator(IApplicationDbContext db)
     {
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(500);
+        // Card #14: free-text fields on transactions are capped at 256 characters.
+        RuleFor(x => x.Description).NotEmpty().MaximumLength(Transaction.FreeTextMaxLength);
 
         RuleFor(x => x.Amount).NotEqual(0m);
 
-        RuleFor(x => x.RawCategory).NotEmpty();
+        RuleFor(x => x.RawCategory).NotEmpty().MaximumLength(Transaction.FreeTextMaxLength);
 
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
         RuleFor(x => x.ReconciledDate).NotNull()
-            .When(x => x.Status == TransactionStatus.Reconciled)
-            .WithMessage("DataConciliado é obrigatório quando Status = Reconciliado.");
+            .When(x => x.Status == TransactionStatus.Confirmed)
+            .WithMessage("DataConciliado é obrigatório quando Status = Confirmed.");
 
         // Mandatory regardless of the referenced account's kind: the checking account for
         // checking-account transactions, or the CreditCard's own id for credit-card transactions.

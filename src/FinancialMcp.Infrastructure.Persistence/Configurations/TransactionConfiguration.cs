@@ -25,8 +25,9 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
         // Category and subcategory / Transaction.RawCategory doc comment.
         builder.Ignore(t => t.RawCategory);
 
+        // Card #14: every free-text field on transactions is capped at 256 chars (varchar(256)).
         builder.Property(t => t.Description)
-            .HasMaxLength(500)
+            .HasMaxLength(Domain.Entities.Transaction.FreeTextMaxLength)
             .IsRequired();
 
         builder.Property(t => t.ExpectedDate).HasColumnType("date").IsRequired();
@@ -37,6 +38,11 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
         builder.Property(t => t.CreatedAt).HasColumnType("timestamptz");
         builder.Property(t => t.UpdatedAt).HasColumnType("timestamptz");
         builder.Property(t => t.DeletedAt).HasColumnType("timestamptz");
+
+        // Card #14: per-status transition timestamps.
+        builder.Property(t => t.SubmittedForReviewAt).HasColumnType("timestamptz");
+        builder.Property(t => t.ScheduledAt).HasColumnType("timestamptz");
+        builder.Property(t => t.ConfirmedAt).HasColumnType("timestamptz");
 
         builder.HasOne(t => t.Account)
             .WithMany(c => c.Transactions)

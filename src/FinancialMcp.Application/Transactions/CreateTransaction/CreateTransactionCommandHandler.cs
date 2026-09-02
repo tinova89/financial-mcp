@@ -18,10 +18,11 @@ public sealed class CreateTransactionCommandHandler(
 {
     public async Task<TransactionDto> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
     {
+        var now = DateTimeOffset.UtcNow;
+
         var transaction = new Transaction
         {
             Type = request.Type,
-            Status = request.Status,
             Description = request.Description,
             Amount = request.Amount,
             RawCategory = request.RawCategory,
@@ -34,6 +35,9 @@ public sealed class CreateTransactionCommandHandler(
             TotalInstallments = request.TotalInstallments,
             AccountId = request.AccountId
         };
+
+        // Stamps ScheduledAt/ConfirmedAt when the initial status warrants it (Card #14).
+        transaction.TransitionTo(request.Status, now);
 
         await categoryResolver.ResolveAsync(transaction, cancellationToken);
 
@@ -58,6 +62,7 @@ public sealed class CreateTransactionCommandHandler(
             transaction.CurrentInstallment,
             transaction.TotalInstallments,
             transaction.AccountId,
+            transaction.NeedsConfirmation(DateOnly.FromDateTime(now.UtcDateTime)),
             budgetRemaining.RemainingBudget,
             budgetRemaining.RemainingBudgetPercentage);
     }

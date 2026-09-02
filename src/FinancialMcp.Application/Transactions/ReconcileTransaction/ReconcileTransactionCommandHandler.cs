@@ -22,7 +22,8 @@ public sealed class ReconcileTransactionCommandHandler(IApplicationDbContext db,
             throw new NotFoundException(nameof(Transaction), request.TransactionId);
         }
 
-        t.Status = TransactionStatus.Reconciled;
+        // Reconciling = the transaction actually happened → Confirmed (Card #14), stamping ConfirmedAt.
+        t.TransitionTo(TransactionStatus.Confirmed, DateTimeOffset.UtcNow);
 
         if (t.Account.Kind != FinancialAccountKind.Credit)
         {

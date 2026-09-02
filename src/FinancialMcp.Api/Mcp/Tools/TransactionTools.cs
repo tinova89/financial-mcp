@@ -29,7 +29,7 @@ public sealed class TransactionTools(IMediator mediator)
         - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
           Optional. Values: `1 - Expense`, `2 - Income`, `3 - Transfer`, `4 - Payment`.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Optional. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
+          string. Optional. Values: `1 - Revision`, `2 - Scheduled`, `3 - Confirmed`.
         - **category** — Filter to rows whose category starts with this parent (e.g.
           `"Moradia"` matches both `Moradia` and `Moradia/Seguro`). Optional.
         - **subcategory** — Filter to rows with this exact subcategory. Optional; applied
@@ -51,14 +51,16 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": 3, "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
+        { "periodStart": "2026-08-01", "periodEnd": "2026-08-31", "status": 2, "year": 2026, "month": 8, "page": 1, "pageSize": 20 }
         ```
-        (`status: 3` = Unreconciled.)
+        (`status: 2` = Scheduled.)
 
         ## Returns
-        A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages). Every
-        item's `remainingBudget`/`remainingBudgetPercentage` are always `null` here — only
-        create/update/delete compute the category's remaining budget.
+        A `PagedResult<TransactionDto>` (items, page, pageSize, totalCount, totalPages). Each
+        item's `needsConfirmation` is `true` when it is `Scheduled` and its `expectedDate` is
+        already in the past (it likely needs confirming; the status is never changed
+        automatically). Every item's `remainingBudget`/`remainingBudgetPercentage` are always
+        `null` here — only create/update/delete compute the category's remaining budget.
         """)]
     public Task<PagedResult<TransactionDto>> ListTransactionsAsync(
         DateOnly periodStart, DateOnly periodEnd,
@@ -91,7 +93,8 @@ public sealed class TransactionTools(IMediator mediator)
         ## Returns
         The matching `TransactionDto` (id, type, status, description, amount, rawCategory,
         expectedDate, actualDate, reconciledDate, invoiceDueDate, recurrence,
-        currentInstallment, totalInstallments, accountId). `remainingBudget`/
+        currentInstallment, totalInstallments, accountId, needsConfirmation).
+        `needsConfirmation` is `true` for an overdue `Scheduled` transaction. `remainingBudget`/
         `remainingBudgetPercentage` are always `null` here — only create/update/delete
         compute the category's remaining budget.
         """)]
@@ -108,15 +111,15 @@ public sealed class TransactionTools(IMediator mediator)
         - **type** — `int` enum (`TransactionType`), sent as a plain integer, not a string.
           Required. Values: `1 - Expense`, `2 - Income`, `3 - Transfer`, `4 - Payment`.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Required. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
-        - **description** — Up to 500 characters. Required.
+          string. Required. Values: `1 - Revision`, `2 - Scheduled`, `3 - Confirmed`.
+        - **description** — Up to 256 characters. Required.
         - **amount** — Non-zero decimal. Required.
         - **rawCategory** — `"Categoria-mãe/Subcategoria"` (subcategory optional within
-          the string, split on `/`). Required.
+          the string, split on `/`). Required. Up to 256 characters.
         - **expectedDate** — The statement's "Data prevista". Required.
         - **actualDate** — The statement's "Data efetiva". Optional.
-        - **reconciledDate** — Set when reconciling a checking-account row. Required when
-          `status = 1` (`Reconciled`); optional otherwise.
+        - **reconciledDate** — Set when a checking-account row is confirmed. Required when
+          `status = 3` (`Confirmed`); optional otherwise.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
           ("Venc. Fatura").
         - **recurrence** — `int` enum (`RecurrenceType`), sent as a plain integer, not a
@@ -139,16 +142,17 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "type": 1, "status": 3,
+        { "type": 1, "status": 2,
           "description": "Notebook 6/12", "amount": -450.00, "rawCategory": "Eletrônicos",
           "expectedDate": "2026-08-05", "invoiceDueDate": "2026-08-12",
           "recurrence": 1, "currentInstallment": 6, "totalInstallments": 12,
           "accountId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
         ```
-        (`type: 1` = Expense, `status: 3` = Unreconciled, `recurrence: 1` = Installment.)
+        (`type: 1` = Expense, `status: 2` = Scheduled, `recurrence: 1` = Installment.)
 
         ## Returns
-        The created `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
+        The created `TransactionDto` (its `needsConfirmation` is `true` only for an overdue
+        `Scheduled` row), including `remainingBudget`/`remainingBudgetPercentage`
         for the transaction's parent category (see CLAUDE.md > Business Rules > Budget goals):
         the goal amount minus Gasto_Real for the transaction's reference month, counting this
         new transaction. Both are `null` when no budget goal is in effect for that
@@ -167,8 +171,9 @@ public sealed class TransactionTools(IMediator mediator)
         ## Parameters (fields of the command object)
         - **transactionId** — `Guid` of the transaction to update. Required.
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
-          string. Optional. Values: `1 - Reconciled`, `2 - Scheduled`, `3 - Unreconciled`.
-        - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional.
+          string. Optional. Values: `1 - Revision`, `2 - Scheduled`, `3 - Confirmed`.
+          Moving into `Scheduled`/`Confirmed` stamps `scheduledAt`/`confirmedAt` once.
+        - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional. Up to 256 characters.
         - **amount** — New amount. Optional.
         - **expectedDate** / **actualDate** / **reconciledDate** / **invoiceDueDate** — New
           dates. Optional.
@@ -183,14 +188,15 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 1, "reconciledDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 3, "reconciledDate": "2026-08-10" }
         ```
-        (`status: 1` = Reconciled.)
+        (`status: 3` = Confirmed.)
 
         ## Returns
-        The updated `TransactionDto`, including `remainingBudget`/`remainingBudgetPercentage`
-        for the transaction's (possibly newly changed) parent category and reference month —
-        same rules as `create_transaction`'s `Returns` section.
+        The updated `TransactionDto` (with `needsConfirmation`), including
+        `remainingBudget`/`remainingBudgetPercentage` for the transaction's (possibly newly
+        changed) parent category and reference month — same rules as `create_transaction`'s
+        `Returns` section.
         """)]
     public Task<TransactionDto> UpdateTransactionAsync(UpdateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
@@ -228,8 +234,8 @@ public sealed class TransactionTools(IMediator mediator)
 
     [McpServerTool(Name = "reconcile_transaction"), Description(
         """
-        Marks a transaction as `Reconciled` — the checking-account equivalent of "Conciliado"
-        or the analogous confirmed state for a credit-card entry.
+        Marks a transaction as `Confirmed` — the checking-account equivalent of "Conciliado"
+        (Card #14 renamed the status) or the analogous confirmed state for a credit-card entry.
 
         ## Parameters
         - **transactionId** — `Guid` of the transaction to reconcile. Required.
@@ -238,7 +244,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
-        - Always sets `status = Reconciled`.
+        - Always sets `status = Confirmed` and stamps `confirmedAt` (once).
         - Only sets `reconciledDate` when the transaction's account is a plain checking
           account (`Account.Kind != Credit`) — for a credit-card-sourced transaction,
           `reconciledDate` is left untouched since the relevant reference date for that row

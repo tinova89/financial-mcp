@@ -12,6 +12,12 @@ namespace FinancialMcp.Domain.Entities;
 /// </summary>
 public class Transaction : BaseEntity
 {
+    /// <summary>
+    /// Hard cap for every free-text field on <c>transactions</c> and <c>transaction_revisions</c>
+    /// (Card #14) — enforced by FluentValidation on write and by <c>varchar(256)</c> at the DB level.
+    /// </summary>
+    public const int FreeTextMaxLength = 256;
+
     public TransactionType Type { get; set; }
     public TransactionStatus Status { get; set; }
 
@@ -47,8 +53,16 @@ public class Transaction : BaseEntity
     // Explicit dates (never string) — see CLAUDE.md > Code Conventions > Dates.
     public DateOnly ExpectedDate { get; set; }
     public DateOnly? ActualDate { get; set; }
-    public DateOnly? ReconciledDate { get; set; }   // checking account only, when Status = Reconciled
+    public DateOnly? ReconciledDate { get; set; }   // checking account only, when Status = Confirmed
     public DateOnly? InvoiceDueDate { get; set; }   // credit card only — date that impacts the balance
+
+    // Per-status transition timestamps (Card #14). Nullable; each is stamped once, the first
+    // time the transaction enters that status, and never regenerated afterwards.
+    // SubmittedForReviewAt is only ever populated by the (out-of-scope) revision-approval flow,
+    // which copies it verbatim from transaction_revisions.CreatedAt — never set on a plain write.
+    public DateTimeOffset? SubmittedForReviewAt { get; set; }
+    public DateTimeOffset? ScheduledAt { get; set; }
+    public DateTimeOffset? ConfirmedAt { get; set; }
 
     // Installments / recurrence (credit card only).
     public RecurrenceType Recurrence { get; set; } = RecurrenceType.None;
@@ -78,7 +92,7 @@ public class Transaction : BaseEntity
     /// </summary>
     public MonthYear? GetReferenceMonthYear(FinancialAccountKind accountKind)
     {
-        if (accountKind != FinancialAccountKind.Credit && Status == TransactionStatus.Reconciled && ReconciledDate is not null)
+        if (accountKind != FinancialAccountKind.Credit && Status == TransactionStatus.Confirmed && ReconciledDate is not null)
         {
             return MonthYear.FromDate(ReconciledDate.Value);
         }
@@ -93,6 +107,35 @@ public class Transaction : BaseEntity
 
     /// <summary>Counts toward the Gasto_Real calculation for goals (see CLAUDE.md > Budget goals, items 1-2).</summary>
     public bool IsEligibleForActualSpend =>
-        Status == TransactionStatus.Reconciled
+        Status == TransactionStatus.Confirmed
         && Type == TransactionType.Expense;
+
+    /// <summary>
+    /// True when this is a <see cref="TransactionStatus.Scheduled"/> transaction whose
+    /// <see cref="ExpectedDate"/> is already in the past relative to <paramref name="today"/> —
+    /// i.e. it was expected to have happened by now and likely needs confirming. Purely
+    /// informational: nothing changes the status automatically (see CLAUDE.md > MCP).
+    /// </summary>
+    public bool NeedsConfirmation(DateOnly today) =>
+        Status == TransactionStatus.Scheduled && ExpectedDate < today;
+
+    /// <summary>
+    /// Moves the transaction to <paramref name="status"/>, stamping the matching per-status
+    /// timestamp the first time that status is entered. <see cref="SubmittedForReviewAt"/> is
+    /// intentionally never set here — it is copied from the revision row on approval.
+    /// </summary>
+    public void TransitionTo(TransactionStatus status, DateTimeOffset now)
+    {
+        Status = status;
+
+        switch (status)
+        {
+            case TransactionStatus.Scheduled:
+                ScheduledAt ??= now;
+                break;
+            case TransactionStatus.Confirmed:
+                ConfirmedAt ??= now;
+                break;
+        }
+    }
 }
