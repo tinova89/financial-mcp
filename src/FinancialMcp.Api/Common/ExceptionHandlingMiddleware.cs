@@ -25,6 +25,10 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             await WriteProblemAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
+        catch (ForbiddenException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Forbidden, ex.Message);
+        }
         catch (ConfirmationRequiredException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.PreconditionRequired, ex.Message);

@@ -13,11 +13,13 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="MockQueryable.NSubstitute" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FinancialMcp.Application\FinancialMcp.Application.csproj" />
     <ProjectReference Include="..\..\src\FinancialMcp.Domain\FinancialMcp.Domain.csproj" />
+    <ProjectReference Include="..\..\src\FinancialMcp.Infrastructure.Persistence\FinancialMcp.Infrastructure.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

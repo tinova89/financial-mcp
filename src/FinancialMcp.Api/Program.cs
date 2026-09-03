@@ -4,10 +4,12 @@ using FinancialMcp.Application;
 using FinancialMcp.Application.Accounts.CreateAccount;
 using FinancialMcp.Application.Accounts.DeleteAccount;
 using FinancialMcp.Application.Accounts.UpdateAccount;
+using FinancialMcp.Application.Common.Interfaces;
 using FinancialMcp.Application.CreditCards.CreateCreditCard;
 using FinancialMcp.Application.CreditCards.DeleteCreditCard;
 using FinancialMcp.Application.CreditCards.UpdateCreditCard;
 using FinancialMcp.Infrastructure;
+using FinancialMcp.Infrastructure.Auth;
 using FinancialMcp.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +38,14 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 //builder.Services.AddInfrastructureAuth(builder.Configuration);
 builder.Services.AddInfrastructurePersistence();
+
+// Card #15: the `approve_revision` MCP tool reads the caller's JWT `scope` claims to enforce
+// the `approval` scope (403 otherwise). ICurrentUserService resolves those from HttpContext;
+// AddApprovalScopePolicy defines the equivalent "ApprovalScope" endpoint policy. The global
+// JWT middleware itself (AddInfrastructureAuth / UseAuthentication) stays as the surrounding
+// code left it — until it is re-enabled, no token reaches the tool and approve_revision 403s.
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddApprovalScopePolicy();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();

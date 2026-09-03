@@ -31,7 +31,10 @@ public static class AuthEndpoints
             }
 
             var userId = DeriveUserId(request.Username);
-            var scopes = new[] { "transactions:read", "transactions:write", "budget:read" };
+
+            // Card #15: `approval` is issued alongside the read/write scopes. Deciding which
+            // callers actually deserve it (role/account policy) is a separate, later concern.
+            var scopes = AuthScopes.Default;
 
             var accessToken = tokenService.GenerateAccessToken(userId, scopes);
             var (refreshToken, expiresAt) = tokenService.GenerateRefreshToken();
@@ -79,8 +82,7 @@ public static class AuthEndpoints
                 ExpiresAt = expiresAt
             });
 
-            var accessToken = tokenService.GenerateAccessToken(
-                existing.UserId, ["transactions:read", "transactions:write", "budget:read"]);
+            var accessToken = tokenService.GenerateAccessToken(existing.UserId, AuthScopes.Default);
 
             await db.SaveChangesAsync(cancellationToken);
 
