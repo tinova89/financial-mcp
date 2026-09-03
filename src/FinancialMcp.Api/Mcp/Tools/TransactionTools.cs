@@ -234,17 +234,22 @@ public sealed class TransactionTools(IMediator mediator)
 
     [McpServerTool(Name = "confirm_transaction"), Description(
         """
-        Marks a transaction as `Confirmed` — the checking-account equivalent of "Conciliado"
-        (Card #14 renamed the status) or the analogous confirmed state for a credit-card entry.
+        Moves a `Scheduled` transaction to `Confirmed` (it actually happened).
 
         ## Parameters
         - **transactionId** — `Guid` of the transaction to confirm. Required.
         - **confirmedDate** — Date to record as the confirmation date. Optional; defaults
           to today (UTC) when omitted.
 
+        ## Precondition
+        - The transaction's current `status` **must** be `Scheduled` (`2`). Confirming a
+          `Revision` (`1`) or an already-`Confirmed` (`3`) transaction is rejected by
+          validation before any data is touched.
+
         ## Behavior
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
-        - Always sets `status = Confirmed` and stamps `confirmedAt` (once).
+        - Sets `status = Confirmed` and stamps `confirmedAt` once (an existing `confirmedAt`
+          is never overwritten).
         - Only sets `confirmedDate` when the transaction's account is a plain checking
           account (`Account.Kind != Credit`) — for a credit-card-sourced transaction,
           `confirmedDate` is left untouched since the relevant reference date for that row
@@ -252,7 +257,7 @@ public sealed class TransactionTools(IMediator mediator)
         - Publishes a `TransactionConfirmedNotification` afterwards, which downstream
           handlers can use to recalculate cached budget status or notify other clients —
           this doesn't block or change the response of this call.
-        - Non-destructive; no confirmation is required.
+        - Non-destructive; no confirmation flag is required.
 
         ## Example
         ```json
