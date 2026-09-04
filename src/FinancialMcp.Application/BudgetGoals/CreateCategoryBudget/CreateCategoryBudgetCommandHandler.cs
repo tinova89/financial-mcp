@@ -27,7 +27,7 @@ public sealed class CreateCategoryBudgetCommandHandler(IApplicationDbContext db)
         var budgetGoal = new BudgetGoal
         {
             RawCategoryId = category.Id,
-            BudgetAmount = request.Amount,
+            GoalAmount = request.Amount,
             CurrencyCode = request.CurrencyCode,
             Period = request.Period,
             Year = request.Year,
@@ -39,7 +39,7 @@ public sealed class CreateCategoryBudgetCommandHandler(IApplicationDbContext db)
         // Final SaveChangesAsync is done by TransactionBehavior (commits the database transaction).
 
         return new BudgetGoalDto(
-            budgetGoal.Id, category.Id, category.Name, budgetGoal.BudgetAmount,
+            budgetGoal.Id, category.Id, category.Name, budgetGoal.GoalAmount,
             budgetGoal.CurrencyCode, budgetGoal.Period.ToString(), budgetGoal.Year, budgetGoal.Month);
     }
 }

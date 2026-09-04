@@ -1,7 +1,7 @@
 namespace FinancialMcp.Domain.ValueObjects;
 
 /// <summary>
-/// Value object for "Categoria-mãe/Subcategoria". Centralizes the parsing used by
+/// Value object for "ParentCategory/Subcategory". Centralizes the parsing used by
 /// every MCP tool that aggregates by category (see CLAUDE.md > Code Conventions >
 /// Category/Subcategory). Single source of truth for the "/" split.
 /// </summary>

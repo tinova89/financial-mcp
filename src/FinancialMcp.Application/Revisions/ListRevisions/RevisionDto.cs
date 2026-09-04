@@ -18,7 +18,7 @@ public sealed record RevisionDto(
     string RawCategory,
     DateOnly ExpectedDate,
     DateOnly? ActualDate,
-    DateOnly? ConfirmedDate,
+    DateOnly? ConfirmationDate,
     DateOnly? InvoiceDueDate,
     string? Recurrence,
     int? CurrentInstallment,

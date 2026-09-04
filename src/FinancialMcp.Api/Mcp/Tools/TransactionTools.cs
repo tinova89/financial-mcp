@@ -38,7 +38,7 @@ public sealed class TransactionTools(IMediator mediator)
           transactions) or a credit card's own id (for that card's transactions) — both
           use the same `accountId` field on a transaction. Optional.
         - **year** / **month** — Filter by the transaction's *reference* month/year
-          (`ConfirmedDate` for checking-account rows, `InvoiceDueDate` for credit-card
+          (`ConfirmationDate` for checking-account rows, `InvoiceDueDate` for credit-card
           rows — see `get_budget_status` for why these differ). Optional.
         - **page** — 1-based page number. Optional, defaults to `1`.
         - **pageSize** — Items per page. Optional, defaults to `50`.
@@ -92,7 +92,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Returns
         The matching `TransactionDto` (id, type, status, description, amount, rawCategory,
-        expectedDate, actualDate, confirmedDate, invoiceDueDate, recurrence,
+        expectedDate, actualDate, confirmationDate, invoiceDueDate, recurrence,
         currentInstallment, totalInstallments, accountId, needsConfirmation).
         `needsConfirmation` is `true` for an overdue `Scheduled` transaction. `remainingBudget`/
         `remainingBudgetPercentage` are always `null` here — only create/update/delete
@@ -114,14 +114,14 @@ public sealed class TransactionTools(IMediator mediator)
           string. Required. Values: `1 - Revision`, `2 - Scheduled`, `3 - Confirmed`.
         - **description** — Up to 256 characters. Required.
         - **amount** — Non-zero decimal. Required.
-        - **rawCategory** — `"Categoria-mãe/Subcategoria"` (subcategory optional within
+        - **rawCategory** — `"ParentCategory/Subcategory"` (subcategory optional within
           the string, split on `/`). Required. Up to 256 characters.
-        - **expectedDate** — The statement's "Data prevista". Required.
-        - **actualDate** — The statement's "Data efetiva". Optional.
-        - **confirmedDate** — Set when a checking-account row is confirmed. Required when
+        - **expectedDate** — The date the transaction is expected to occur. Required.
+        - **actualDate** — The date the transaction actually occurred. Optional.
+        - **confirmationDate** — Set when a checking-account row is confirmed. Required when
           `status = 3` (`Confirmed`); optional otherwise.
         - **invoiceDueDate** — Required when `accountId` refers to a credit card
-          ("Venc. Fatura").
+          (the card invoice's due date).
         - **recurrence** — `int` enum (`RecurrenceType`), sent as a plain integer, not a
           string. Required. Values: `0 - None`, `1 - Installment`, `2 - FixedMonthly`.
         - **currentInstallment** / **totalInstallments** — Required (and
@@ -154,10 +154,10 @@ public sealed class TransactionTools(IMediator mediator)
         The created `TransactionDto` (its `needsConfirmation` is `true` only for an overdue
         `Scheduled` row), including `remainingBudget`/`remainingBudgetPercentage`
         for the transaction's parent category (see CLAUDE.md > Business Rules > Budget goals):
-        the goal amount minus Gasto_Real for the transaction's reference month, counting this
+        the goal amount minus ActualSpend for the transaction's reference month, counting this
         new transaction. Both are `null` when no budget goal is in effect for that
         category/month (or the transaction has no resolvable reference month yet, e.g. an
-        unconfirmed checking-account row with no `confirmedDate`).
+        unconfirmed checking-account row with no `confirmationDate`).
         """)]
     public Task<TransactionDto> CreateTransactionAsync(CreateTransactionCommand command, CancellationToken cancellationToken = default) =>
         mediator.Send(command, cancellationToken);
@@ -173,9 +173,9 @@ public sealed class TransactionTools(IMediator mediator)
         - **status** — `int` enum (`TransactionStatus`), sent as a plain integer, not a
           string. Optional. Values: `1 - Revision`, `2 - Scheduled`, `3 - Confirmed`.
           Moving into `Scheduled`/`Confirmed` stamps `scheduledAt`/`confirmedAt` once.
-        - **rawCategory** — New `"Categoria-mãe/Subcategoria"`. Optional. Up to 256 characters.
+        - **rawCategory** — New `"ParentCategory/Subcategory"`. Optional. Up to 256 characters.
         - **amount** — New amount. Optional.
-        - **expectedDate** / **actualDate** / **confirmedDate** / **invoiceDueDate** — New
+        - **expectedDate** / **actualDate** / **confirmationDate** / **invoiceDueDate** — New
           dates. Optional.
 
         ## Not patchable here
@@ -188,7 +188,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 3, "confirmedDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "status": 3, "confirmationDate": "2026-08-10" }
         ```
         (`status: 3` = Confirmed.)
 
@@ -226,7 +226,7 @@ public sealed class TransactionTools(IMediator mediator)
         ## Returns
         The deleted transaction's `TransactionDto` (its stored fields, unchanged), with
         `remainingBudget`/`remainingBudgetPercentage` recomputed for its parent category and
-        reference month as if this transaction no longer counts toward Gasto_Real — same
+        reference month as if this transaction no longer counts toward ActualSpend — same
         null-ability rules as `create_transaction`'s `Returns` section.
         """)]
     public Task<TransactionDto> DeleteTransactionAsync(Guid transactionId, bool confirm, CancellationToken cancellationToken = default) =>
@@ -238,7 +238,7 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Parameters
         - **transactionId** — `Guid` of the transaction to confirm. Required.
-        - **confirmedDate** — Date to record as the confirmation date. Optional; defaults
+        - **confirmationDate** — Date to record as the confirmation date. Optional; defaults
           to today (UTC) when omitted.
 
         ## Precondition
@@ -250,10 +250,10 @@ public sealed class TransactionTools(IMediator mediator)
         - Throws a not-found error if `transactionId` doesn't match a registered transaction.
         - Sets `status = Confirmed` and stamps `confirmedAt` once (an existing `confirmedAt`
           is never overwritten).
-        - Only sets `confirmedDate` when the transaction's account is a plain checking
+        - Only sets `confirmationDate` when the transaction's account is a plain checking
           account (`Account.Kind != Credit`) — for a credit-card-sourced transaction,
-          `confirmedDate` is left untouched since the relevant reference date for that row
-          is `invoiceDueDate`, not `confirmedDate`.
+          `confirmationDate` is left untouched since the relevant reference date for that row
+          is `invoiceDueDate`, not `confirmationDate`.
         - Publishes a `TransactionConfirmedNotification` afterwards, which downstream
           handlers can use to recalculate cached budget status or notify other clients —
           this doesn't block or change the response of this call.
@@ -261,16 +261,16 @@ public sealed class TransactionTools(IMediator mediator)
 
         ## Example
         ```json
-        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "confirmedDate": "2026-08-10" }
+        { "transactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "confirmationDate": "2026-08-10" }
         ```
 
         ## Returns
         A confirmation message string ("Transação confirmada.").
         """)]
     public async Task<string> ConfirmTransactionAsync(
-        Guid transactionId, DateOnly? confirmedDate = null, CancellationToken cancellationToken = default)
+        Guid transactionId, DateOnly? confirmationDate = null, CancellationToken cancellationToken = default)
     {
-        await mediator.Send(new ConfirmTransactionCommand(transactionId, confirmedDate), cancellationToken);
+        await mediator.Send(new ConfirmTransactionCommand(transactionId, confirmationDate), cancellationToken);
         return "Transação confirmada.";
     }
 }

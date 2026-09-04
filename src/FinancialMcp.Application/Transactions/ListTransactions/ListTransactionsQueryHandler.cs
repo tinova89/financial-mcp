@@ -62,7 +62,7 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Subcategory/Year/Month filters depend on the Category value object and the
-        // reference MonthYear calculated in memory (Data Conciliado vs. Venc. Fatura).
+        // reference MonthYear calculated in memory (ConfirmationDate vs. InvoiceDueDate).
         var filteredItems = transactions
             .Where(t => request.Subcategory is null || t.Category.Subcategory == request.Subcategory)
             .Where(t => (request.Year is null || request.Year <= 0) || t.GetReferenceMonthYear()?.Year == request.Year)
@@ -82,7 +82,7 @@ public sealed class ListTransactionsQueryHandler(IApplicationDbContext db)
         t.Category.FullName,
         t.ExpectedDate,
         t.ActualDate,
-        t.ConfirmedDate,
+        t.ConfirmationDate,
         t.InvoiceDueDate,
         t.Recurrence.ToString(),
         t.CurrentInstallment,

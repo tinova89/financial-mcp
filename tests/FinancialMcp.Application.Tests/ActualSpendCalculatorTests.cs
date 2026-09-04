@@ -8,7 +8,7 @@ using Xunit;
 namespace FinancialMcp.Application.Tests;
 
 /// <summary>
-/// Card #14 — Gasto_Real aggregation counts only <c>Confirmed</c> expenses
+/// Card #14 — ActualSpend aggregation counts only <c>Confirmed</c> expenses
 /// (see CLAUDE.md > Business Rules > Budget goals, item 1).
 /// </summary>
 public class ActualSpendCalculatorTests
@@ -20,7 +20,7 @@ public class ActualSpendCalculatorTests
         Type = TransactionType.Expense,
         Status = status,
         Amount = amount,
-        ConfirmedDate = new DateOnly(2026, 8, 15),
+        ConfirmationDate = new DateOnly(2026, 8, 15),
         Account = new Account(),                                  // checking account (Kind = Debit)
         Category = new TransactionCategory { Name = parentCategory }
     };
@@ -45,7 +45,7 @@ public class ActualSpendCalculatorTests
     public void Ignores_confirmed_expenses_in_a_different_month()
     {
         var julyExpense = Expense(TransactionStatus.Confirmed, -300m);
-        julyExpense.ConfirmedDate = new DateOnly(2026, 7, 31);
+        julyExpense.ConfirmationDate = new DateOnly(2026, 7, 31);
 
         var transactions = new[] { Expense(TransactionStatus.Confirmed, -120m), julyExpense };
 

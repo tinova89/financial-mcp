@@ -39,7 +39,7 @@ public sealed class UpdateTransactionCommandHandler(
         if (request.Amount is not null) t.Amount = request.Amount.Value;
         if (request.ExpectedDate is not null) t.ExpectedDate = request.ExpectedDate.Value;
         if (request.ActualDate is not null) t.ActualDate = request.ActualDate;
-        if (request.ConfirmedDate is not null) t.ConfirmedDate = request.ConfirmedDate;
+        if (request.ConfirmationDate is not null) t.ConfirmationDate = request.ConfirmationDate;
         if (request.InvoiceDueDate is not null) t.InvoiceDueDate = request.InvoiceDueDate;
 
         t.UpdatedAt = now;
@@ -48,7 +48,7 @@ public sealed class UpdateTransactionCommandHandler(
 
         return new TransactionDto(
             t.Id, t.Type.ToString(), t.Status.ToString(), t.Description, t.Amount,
-            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ConfirmedDate, t.InvoiceDueDate,
+            t.Category.FullName, t.ExpectedDate, t.ActualDate, t.ConfirmationDate, t.InvoiceDueDate,
             t.Recurrence.ToString(), t.CurrentInstallment, t.TotalInstallments, t.AccountId,
             t.NeedsConfirmation(DateOnly.FromDateTime(now.UtcDateTime)),
             budgetRemaining.RemainingBudget, budgetRemaining.RemainingBudgetPercentage);

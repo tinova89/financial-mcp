@@ -35,7 +35,7 @@ public sealed class TransactionRevision
 
     public DateOnly ExpectedDate { get; set; }
     public DateOnly? ActualDate { get; set; }
-    public DateOnly? ConfirmedDate { get; set; }
+    public DateOnly? ConfirmationDate { get; set; }
     public DateOnly? InvoiceDueDate { get; set; }
 
     public RecurrenceType Recurrence { get; set; } = RecurrenceType.None;

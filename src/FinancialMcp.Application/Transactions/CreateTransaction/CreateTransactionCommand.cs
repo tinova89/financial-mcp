@@ -13,10 +13,10 @@ public sealed record CreateTransactionCommand(
     TransactionStatus Status,
     string Description,
     decimal Amount,
-    string RawCategory,        // "Categoria-mãe/Subcategoria"
+    string RawCategory,        // "ParentCategory/Subcategory"
     DateOnly ExpectedDate,
     DateOnly? ActualDate,
-    DateOnly? ConfirmedDate,
+    DateOnly? ConfirmationDate,
     DateOnly? InvoiceDueDate,
     RecurrenceType Recurrence,
     int? CurrentInstallment,

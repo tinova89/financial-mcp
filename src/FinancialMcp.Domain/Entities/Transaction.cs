@@ -27,7 +27,7 @@ public class Transaction : BaseEntity
     public decimal Amount { get; set; }
 
     /// <summary>
-    /// "Categoria-mãe/Subcategoria" as it came from the statement/caller — support-only,
+    /// "ParentCategory/Subcategory" as it came from the statement/caller — support-only,
     /// never persisted (see TransactionConfiguration.Ignore). Used solely to resolve
     /// CategoryId/Category via ITransactionCategoryResolver at write time; reads must go
     /// through Category (e.g. Category.FullName), not this property.
@@ -53,7 +53,7 @@ public class Transaction : BaseEntity
     // Explicit dates (never string) — see CLAUDE.md > Code Conventions > Dates.
     public DateOnly ExpectedDate { get; set; }
     public DateOnly? ActualDate { get; set; }
-    public DateOnly? ConfirmedDate { get; set; }    // checking account only, when Status = Confirmed
+    public DateOnly? ConfirmationDate { get; set; } // checking account only, when Status = Confirmed
     public DateOnly? InvoiceDueDate { get; set; }   // credit card only — date that impacts the balance
 
     // Per-status transition timestamps (Card #14). Nullable; each is stamped once, the first
@@ -78,7 +78,7 @@ public class Transaction : BaseEntity
     public Account Account { get; set; } = default!;
 
     /// <summary>
-    /// Reference Mês_Ano: "Data Conciliado" for a confirmed checking account, "Venc. Fatura" for credit card
+    /// Reference month/year: ConfirmationDate for a confirmed checking account, InvoiceDueDate for credit card
     /// (see CLAUDE.md > Business Rules > Budget goals, item 3). Uses Account.Kind — the
     /// authoritative, always-correct discriminator — rather than the caller-supplied Source.
     /// Requires Account to be loaded (callers must .Include(t => t.Account)).
@@ -92,9 +92,9 @@ public class Transaction : BaseEntity
     /// </summary>
     public MonthYear? GetReferenceMonthYear(FinancialAccountKind accountKind)
     {
-        if (accountKind != FinancialAccountKind.Credit && Status == TransactionStatus.Confirmed && ConfirmedDate is not null)
+        if (accountKind != FinancialAccountKind.Credit && Status == TransactionStatus.Confirmed && ConfirmationDate is not null)
         {
-            return MonthYear.FromDate(ConfirmedDate.Value);
+            return MonthYear.FromDate(ConfirmationDate.Value);
         }
 
         if (accountKind == FinancialAccountKind.Credit && InvoiceDueDate is not null)
@@ -105,7 +105,7 @@ public class Transaction : BaseEntity
         return null;
     }
 
-    /// <summary>Counts toward the Gasto_Real calculation for goals (see CLAUDE.md > Budget goals, items 1-2).</summary>
+    /// <summary>Counts toward the ActualSpend calculation for goals (see CLAUDE.md > Budget goals, items 1-2).</summary>
     public bool IsEligibleForActualSpend =>
         Status == TransactionStatus.Confirmed
         && Type == TransactionType.Expense;

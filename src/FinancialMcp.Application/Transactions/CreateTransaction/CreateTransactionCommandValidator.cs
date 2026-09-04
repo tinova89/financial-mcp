@@ -24,9 +24,9 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 
         RuleFor(x => x.ExpectedDate).NotEqual(default(DateOnly));
 
-        RuleFor(x => x.ConfirmedDate).NotNull()
+        RuleFor(x => x.ConfirmationDate).NotNull()
             .When(x => x.Status == TransactionStatus.Confirmed)
-            .WithMessage("DataConciliado é obrigatório quando Status = Confirmed.");
+            .WithMessage("ConfirmationDate é obrigatório quando Status = Confirmed.");
 
         // Mandatory regardless of the referenced account's kind: the checking account for
         // checking-account transactions, or the CreditCard's own id for credit-card transactions.

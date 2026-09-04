@@ -12,9 +12,9 @@ namespace FinancialMcp.Application.BudgetGoals.GetBudgetStatus;
 /// Single handler for GetBudgetStatusQuery. Implements exactly the rules from
 /// CLAUDE.md > Business Rules > Budget goals:
 ///  1. Only Status = Confirmed (Card #14; formerly Conciliado).
-///  2. Only Tipo = Despesa (never Receita/Transferência/Pagamento).
-///  3. Mês_Ano: "Data Conciliado" (checking account) / "Venc. Fatura" (credit card).
-///  4. Gasto_Real / Saldo_Meta / % Utilizado.
+///  2. Only Type = Expense (never Income/Transfer/Payment).
+///  3. Reference month/year: ConfirmationDate (checking account) / InvoiceDueDate (credit card).
+///  4. ActualSpend / RemainingBudget / PercentUsed.
 ///  5. Categories without a goal don't appear in the result.
 ///  6. Per category, the goal in effect for the requested month is picked via
 ///     BudgetGoal.ResolveEffective (exact OneTime match, else the latest applicable Monthly goal).
@@ -46,7 +46,7 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
         }
 
         // Brings in a reasonable universe of candidates (Expense + Confirmed) and filters the
-        // reference Mês_Ano in memory, since it depends on which date column to use based on
+        // reference month/year in memory, since it depends on which date column to use based on
         // Account.Kind (a rule that isn't directly translatable to plain SQL without duplicating
         // logic — kept centralized in Transaction.GetReferenceMonthYear()). Include(Account) is
         // required since that method reads Account.Kind.
@@ -66,28 +66,28 @@ public sealed class GetBudgetStatusQueryHandler(IApplicationDbContext db)
         foreach (var goal in budgetGoals)
         {
             // BudgetGoal.RawCategory is always a parent category (see BudgetGoal doc comment),
-            // so every subcategory under it counts toward Gasto_Real — no exact-subcategory match.
+            // so every subcategory under it counts toward ActualSpend — no exact-subcategory match.
             var categoryExpenses = monthExpenses
                 .Where(t => string.Equals(t.Category.ParentCategoryName, goal.RawCategory.Name, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var actualSpent = ActualSpendCalculator.SumForCategoryMonth(
+            var actualSpend = ActualSpendCalculator.SumForCategoryMonth(
                 categoryExpenses, goal.RawCategory.Name, targetMonthYear);
-            var remainingBudget = goal.BudgetAmount - actualSpent;
-            decimal? utilizationPercentage = goal.BudgetAmount == 0m ? null : actualSpent / goal.BudgetAmount;
+            var remainingBudget = goal.GoalAmount - actualSpend;
+            decimal? percentUsed = goal.GoalAmount == 0m ? null : actualSpend / goal.GoalAmount;
 
             var breakdown = categoryExpenses
                 .GroupBy(t => t.Category.Subcategory)
                 .Select(g => new SubcategoryBreakdownDto(g.Key, g.Sum(t => Math.Abs(t.Amount))))
-                .OrderByDescending(d => d.ActualSpent)
+                .OrderByDescending(d => d.ActualSpend)
                 .ToList();
 
             result.Add(new BudgetStatusDto(
                 goal.RawCategory.Name,
-                goal.BudgetAmount,
-                actualSpent,
+                goal.GoalAmount,
+                actualSpend,
                 remainingBudget,
-                utilizationPercentage,
+                percentUsed,
                 breakdown));
         }
 

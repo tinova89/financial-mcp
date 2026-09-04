@@ -54,7 +54,7 @@ public sealed class RevisionTools(IMediator mediator, ICurrentUserService curren
         ## Returns
         A `PagedResult<RevisionDto>` (items, page, pageSize, totalCount, totalPages). Each
         item has the same shape as a `TransactionDto` (id, type, status, description, amount,
-        rawCategory, expectedDate, actualDate, confirmedDate, invoiceDueDate, recurrence,
+        rawCategory, expectedDate, actualDate, confirmationDate, invoiceDueDate, recurrence,
         currentInstallment, totalInstallments, accountId) plus `transactionId` (the parent
         transaction) and `createdAt` (the Revision-stage submission timestamp — the value
         copied verbatim into the transaction's `submittedForReviewAt` on approval).

@@ -35,7 +35,7 @@ public sealed class TransactionCategory : BaseEntity
     public string? Subcategory => ParentCategory is null ? null : Name;
 
     /// <summary>
-    /// Reconstructs the "Categoria-mãe/Subcategoria" text in the same format Transaction.RawCategory
+    /// Reconstructs the "ParentCategory/Subcategory" text in the same format Transaction.RawCategory
     /// originally came in — used to answer with that shape without persisting RawCategory itself.
     /// </summary>
     public string FullName => ParentCategory is null ? Name : $"{ParentCategory.Name}/{Name}";

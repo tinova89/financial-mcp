@@ -28,7 +28,7 @@ public sealed class TransactionRevisionConfiguration : IEntityTypeConfiguration<
 
         builder.Property(r => r.ExpectedDate).HasColumnType("date").IsRequired();
         builder.Property(r => r.ActualDate).HasColumnType("date");
-        builder.Property(r => r.ConfirmedDate).HasColumnType("date");
+        builder.Property(r => r.ConfirmationDate).HasColumnType("date");
         builder.Property(r => r.InvoiceDueDate).HasColumnType("date");
 
         // Reused as the Revision-stage submission timestamp — there is no separate SubmittedForReviewAt here.

@@ -5,7 +5,7 @@ using Xunit;
 namespace FinancialMcp.Application.Tests;
 
 /// <summary>
-/// Covers CLAUDE.md > Testing Guidelines > "Gasto_Real aggregation by
+/// Covers CLAUDE.md > Testing Guidelines > "ActualSpend aggregation by
 /// parent category vs. full subcategory".
 /// </summary>
 public class CategoryTests

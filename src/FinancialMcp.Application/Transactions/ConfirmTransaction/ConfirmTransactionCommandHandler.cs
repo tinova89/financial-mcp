@@ -27,7 +27,7 @@ public sealed class ConfirmTransactionCommandHandler(IApplicationDbContext db, I
 
         if (t.Account.Kind != FinancialAccountKind.Credit)
         {
-            t.ConfirmedDate = request.ConfirmedDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            t.ConfirmationDate = request.ConfirmationDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         }
 
         // Published after the in-memory change; the actual commit happens in TransactionBehavior.

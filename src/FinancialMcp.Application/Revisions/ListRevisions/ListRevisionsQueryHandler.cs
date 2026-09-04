@@ -57,7 +57,7 @@ public sealed class ListRevisionsQueryHandler(IApplicationDbContext db)
         r.Category.FullName,
         r.ExpectedDate,
         r.ActualDate,
-        r.ConfirmedDate,
+        r.ConfirmationDate,
         r.InvoiceDueDate,
         r.Recurrence.ToString(),
         r.CurrentInstallment,

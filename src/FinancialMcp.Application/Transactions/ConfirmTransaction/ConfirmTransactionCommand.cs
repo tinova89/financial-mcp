@@ -8,5 +8,5 @@ namespace FinancialMcp.Application.Transactions.ConfirmTransaction;
 /// Corresponds to the MCP tool `confirm_transaction`. Publishes TransactionConfirmedNotification
 /// (see CLAUDE.md > Mediator Pattern > Notifications).
 /// </summary>
-public sealed record ConfirmTransactionCommand(Guid TransactionId, DateOnly? ConfirmedDate = null)
+public sealed record ConfirmTransactionCommand(Guid TransactionId, DateOnly? ConfirmationDate = null)
     : IRequest, ITransactionalRequest;

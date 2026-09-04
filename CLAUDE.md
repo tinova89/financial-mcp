@@ -9,7 +9,7 @@ A financial **MCP Server** (Model Context Protocol), exposed via a **custom conn
 - **Checking Account (CC)** — bank statements
 - **Credit Card (CD)** — card statements (Nubank, Bradesco, Sofisa, and future ones)
 
-The MCP also exposes tools for **budget goals** (`Meta_Valor` per category/month), applying the business rules described in the [Business Rules](#financial-domain-business-rules) section below — these rules are the source of truth for any calculation logic implemented in the backend and **must** be kept in sync with the code's actual behavior.
+The MCP also exposes tools for **budget goals** (`GoalAmount` per category/month), applying the business rules described in the [Business Rules](#financial-domain-business-rules) section below — these rules are the source of truth for any calculation logic implemented in the backend and **must** be kept in sync with the code's actual behavior.
 
 Built with:
 - **Backend:** .NET 10, orchestrated via .NET Aspire
@@ -67,15 +67,15 @@ dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persis
 - **Auth:** MCP connections use the same JWT bearer scheme as the REST API (custom provider, see [Authentication](#authentication-custom-jwt)); token passed via `accessTokenFactory` on the client.
 - **Exposed tools** — 18 tools total, all `[McpServerToolType]` classes under `FinancialMcp.Api/Mcp/Tools`, registered by reflection (`WithToolsFromAssembly()` in `Program.cs`). Each is "thin" — see [Mediator Pattern](#mediator-pattern-mediatr):
   - **`CategoryTools`**
-    - `list_categories` — lists every distinct parent category currently in use, each with its distinct subcategories (parsed from `Categoria-mãe/Subcategoria`, split on `/`). Read-only, no parameters. Purely informational — doesn't imply a budget goal exists (see `get_budget_status`).
+    - `list_categories` — lists every distinct parent category currently in use, each with its distinct subcategories (parsed as `ParentCategory/Subcategory`, split on `/`). Read-only, no parameters. Purely informational — doesn't imply a budget goal exists (see `get_budget_status`).
     - `lookup_category` — resolves a category for a transaction `description`, from the description→category mapping table learned automatically every time `create_transaction`/`update_transaction` categorizes a transaction (most recent categorization wins). Useful before `create_transaction`/`update_transaction` to reuse a past categorization instead of guessing.
   - **`TransactionTools`**
     - `list_transactions` — lists transactions with filters: `periodStart`/`periodEnd` (required, inclusive `ExpectedDate` range), `type`/`status` (optional enums, see below), `category`/`subcategory`, `accountId` (checking account or credit card), `year`/`month` (reference month, see [Budget goals](#budget-goals-get_budget_status)), `page`/`pageSize`. Read-only, paginated, ordered by `expectedDate` descending. Each item carries `needsConfirmation` (see below).
     - `get_transaction` — full detail of a single transaction by `transactionId`. Read-only.
-    - `create_transaction` — inserts a new transaction (checking account or credit card), honoring the required fields for each statement type (`invoiceDueDate` required for credit-card `accountId`s, installment fields required when `recurrence = Installment`, `confirmedDate` required when `status = Confirmed`). Stamps the per-status timestamp for the initial status (`ScheduledAt`/`ConfirmedAt`). Non-destructive.
+    - `create_transaction` — inserts a new transaction (checking account or credit card), honoring the required fields for each statement type (`invoiceDueDate` required for credit-card `accountId`s, installment fields required when `recurrence = Installment`, `confirmationDate` required when `status = Confirmed`). Stamps the per-status timestamp for the initial status (`ScheduledAt`/`ConfirmedAt`). Non-destructive.
     - `update_transaction` — partial patch of an existing transaction (`status`, `rawCategory`, `amount`, dates); fields left `null` keep their stored value. A `status` change into `Scheduled`/`Confirmed` stamps `ScheduledAt`/`ConfirmedAt` once (never overwritten). `accountId`, `recurrence`, and installment fields aren't patchable here. Non-destructive.
     - `delete_transaction` — soft delete (`IsDeleted`/`DeletedAt`). **Destructive operation**: requires an explicit `confirm = true` argument, rejected by validation otherwise — always confirm with the caller first.
-    - `confirm_transaction` (Card #16) — moves a transaction from `Scheduled` to `Confirmed` (stamping `ConfirmedAt` once). **Precondition:** the current `Status` must be `Scheduled` — confirming a `Revision` or already-`Confirmed` row is rejected by `ConfirmTransactionCommandValidator` before the handler runs (unknown ids fall through to the handler's 404). Sets `confirmedDate` only for checking-account transactions (credit-card rows key off `invoiceDueDate` instead). Publishes `TransactionConfirmedNotification` afterwards. Non-destructive.
+    - `confirm_transaction` (Card #16) — moves a transaction from `Scheduled` to `Confirmed` (stamping `ConfirmedAt` once). **Precondition:** the current `Status` must be `Scheduled` — confirming a `Revision` or already-`Confirmed` row is rejected by `ConfirmTransactionCommandValidator` before the handler runs (unknown ids fall through to the handler's 404). Sets `confirmationDate` only for checking-account transactions (credit-card rows key off `invoiceDueDate` instead). Publishes `TransactionConfirmedNotification` afterwards. Non-destructive.
     - **`needsConfirmation`** — a computed boolean on every `TransactionDto` returned by `list_transactions`, `get_transaction`, `create_transaction`, `update_transaction` and `delete_transaction`: `true` when `Status = Scheduled` **and** `ExpectedDate < today` (the transaction was expected to have happened by now). Purely informational — nothing changes the status automatically. See `Transaction.NeedsConfirmation`.
   - **`CheckingAccountTools`** (formerly `AccountTools`/`list_accounts`/`get_account`) — **read-only** for financial accounts (checking, investment, wallet, etc.); never returns/operates on credit cards.
     - `list_checking_accounts` — every registered non-credit-card account, ordered by `displayName`, each including the `creditCardIds` whose bill is paid from it.
@@ -86,8 +86,8 @@ dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persis
     - `get_credit_card` — detail of a single credit card by `creditCardId`.
     - Create/update/delete are also REST-only.
   - **`BudgetTools`**
-    - `get_budget_status` — calculates `Gasto_Real`/`Saldo_Meta`/`% Utilizado` per category for a given `year`/`month` (both required), for every category with a budget goal in effect that month, per the [Budget goals](#budget-goals-get_budget_status) rules below. Read-only.
-    - `create_category_budget` — registers a budget goal (`Meta_Valor`) for a parent category (`categoryId`) and calendar month (`year`/`month`), with an `amount`/`currencyCode` and a `period` (`Monthly` or `OneTime`, see rules below). Rejected if `categoryId` is a subcategory or a goal already exists for that category/month. Non-destructive.
+    - `get_budget_status` — calculates `ActualSpend`/`RemainingBudget`/`PercentUsed` (against each category's `GoalAmount`) per category for a given `year`/`month` (both required), for every category with a budget goal in effect that month, per the [Budget goals](#budget-goals-get_budget_status) rules below. Read-only.
+    - `create_category_budget` — registers a budget goal (`GoalAmount`) for a parent category (`categoryId`) and calendar month (`year`/`month`), with an `amount`/`currencyCode` and a `period` (`Monthly` or `OneTime`, see rules below). Rejected if `categoryId` is a subcategory or a goal already exists for that category/month. Non-destructive.
   - **`StatementTools`**
     - `import_statement` — imports a CSV statement (`csvContent`) into the account identified by `accountId`; whether each row parses as a checking-account or credit-card statement is inferred from that account's `Account.Kind`, never a caller-supplied flag. Invalid lines are skipped with a warning rather than aborting the whole import; the imported batch commits atomically. Non-destructive.
   - **`RevisionTools`** (Card #15) — tools over `transaction_revisions` (the proposed field values submitted while a transaction is in `Status = Revision`).
@@ -106,8 +106,8 @@ dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persis
 ### Persistence (Postgres)
 - **Provider:** EF Core with `Npgsql.EntityFrameworkCore.PostgreSQL`, `DbContext` in `FinancialMcp.Infrastructure`.
 - **Schema/Migrations:** all EF Core migrations are versioned under `FinancialMcp.Infrastructure/Migrations`; never edit a migration already applied to a shared environment — create a new one.
-- **Types:** map `Valor`/`Meta_Valor`/`Gasto_Real`/`Saldo_Meta` as `numeric` (never `double precision`); dates (`Data prevista`, `Data efetiva`, `Data Conciliado`, `Venc. Fatura`) as `date`/`timestamptz` as appropriate, never `text`. The per-status transition timestamps on `transactions` — `SubmittedForReviewAt`, `ScheduledAt`, `ConfirmedAt` (Card #14) — are nullable `timestamptz`, each stamped once on entering that status via `Transaction.TransitionTo` and never overwritten (`SubmittedForReviewAt` is only ever copied from `transaction_revisions.CreatedAt` on revision approval, never regenerated). Every free-text field on `transactions` and `transaction_revisions` is `varchar(256)` — the single cap is `Transaction.FreeTextMaxLength`, enforced both here and by FluentValidation on write.
-- **Indexes:** ensure an index on `(Mês_Ano, CategoriaMae)` and on `(Status, Tipo)` to speed up `get_budget_status` aggregations; `accounts.Group` is indexed too (see [Account Group](#account-group-x-account-group-header)).
+- **Types:** map `Amount`/`GoalAmount`/`ActualSpend`/`RemainingBudget` as `numeric` (never `double precision`); the `Transaction` dates (`ExpectedDate`, `ActualDate`, `ConfirmationDate`, `InvoiceDueDate`) as `date`/`timestamptz` as appropriate, never `text`. The per-status transition timestamps on `transactions` — `SubmittedForReviewAt`, `ScheduledAt`, `ConfirmedAt` (Card #14) — are nullable `timestamptz`, each stamped once on entering that status via `Transaction.TransitionTo` and never overwritten (`SubmittedForReviewAt` is only ever copied from `transaction_revisions.CreatedAt` on revision approval, never regenerated). Every free-text field on `transactions` and `transaction_revisions` is `varchar(256)` — the single cap is `Transaction.FreeTextMaxLength`, enforced both here and by FluentValidation on write.
+- **Indexes:** ensure an index on the reference month/year + parent category and on `(Status, Type)` to speed up `get_budget_status` aggregations; `accounts.Group` is indexed too (see [Account Group](#account-group-x-account-group-header)).
 - **Soft delete:** `delete_transaction` sets a `DeletedAt`/`IsDeleted` column; a global query filter on the `DbContext` excludes deleted records from all queries by default (explicit administrative queries can bypass the filter via `IgnoreQueryFilters()`).
 - **`transaction_revisions` table (Card #14):** holds a proposed set of `Transaction` field values submitted while a transaction is in `Status = Revision`, awaiting review. Same shape as `transactions` **minus** the generated/identity plumbing (`UpdatedAt`, `IsDeleted`/`DeletedAt`, and the per-status `SubmittedForReviewAt`/`ScheduledAt`/`ConfirmedAt` stamps); its `CreatedAt` **is** the Revision-stage submission timestamp (there is no separate `SubmittedForReviewAt` column here). Config in `TransactionRevisionConfiguration`; it has no soft-delete state of its own and follows its parent via `HasQueryFilter(r => !r.Transaction.IsDeleted)`. Read/approve via the `RevisionTools` MCP tools (`list_revisions`/`approve_revision`, Card #15 — see [MCP](#mcp)); `approve_revision` deletes the row as it promotes it to a new `transactions` row. A revert-to-`Scheduled` tool is still pending — see [Open Questions / TODO](#open-questions--todo).
 - **Connection string:** always via Aspire service discovery/`ConnectionStrings`, never hardcoded (see [Common Commands](#common-commands)).
@@ -132,24 +132,24 @@ dotnet ef migrations add <Name> --project src/FinancialMcp.Infrastructure.Persis
 These rules **govern** the behavior of the query and calculation MCP tools (`get_budget_status`, `list_transactions`, etc.). Any behavior change in the code must keep this document up to date.
 
 ### Category and subcategory
-- The `Categoria` column in the statements (CC and CD) is treated as `Categoria-mãe/Subcategoria`, split on the `/` character when present.
+- The raw `Categoria` column in the statements (CC and CD) — its header is unchanged by the CSV import — is parsed into `ParentCategory/Subcategory`, split on the `/` character when present (see the `Category` value object).
 - A `BudgetGoal` always references a parent `TransactionCategory` (`RawCategoryId`), never a subcategory — aggregation for a goal (e.g. `Moradia`) sums **all** rows whose parent category is `Moradia`, regardless of subcategory.
 - Also generate a breakdown by subcategory (secondary, doesn't create its own goal).
 
 ### Budget goals (`get_budget_status`)
 1. **Status filter** (default, unless stated otherwise): only `Status = Confirmed`. Ignore `Revision` and `Scheduled`. (Card #14 renamed the statuses: the former `Conciliado` is now `Confirmed`; the former `Agendado`/`Nconciliado` both became `Scheduled`.)
-2. **Type filter**: only `Tipo = Despesa`. Don't include `Receita` by default. Never include `Transferência` or `Pagamento` (the "Pagamento de cartão" entry in the checking account is excluded so as not to double-count spending already counted via the card's entries).
-3. **Month reference date (`Mês_Ano`)**:
-   - Checking account (when `Confirmed`): use the **"Data Conciliado"** column.
-   - Credit card: use the **"Venc. Fatura"** column (not "Data efetiva") — reflects the month in which the amount actually impacts the payment account, honoring the rule of rolling to the next business day when the due date falls on a weekend.
+2. **Type filter**: only `Type = Expense`. Don't include `Income` by default. Never include `Transfer` or `Payment` (the "Pagamento de cartão" entry in the checking account is excluded so as not to double-count spending already counted via the card's entries).
+3. **Reference month/year**:
+   - Checking account (when `Confirmed`): use the **`ConfirmationDate`** value.
+   - Credit card: use the **`InvoiceDueDate`** value (not `ActualDate`) — reflects the month in which the amount actually impacts the payment account, honoring the rule of rolling to the next business day when the due date falls on a weekend.
 4. **Goal period (`BudgetGoal.Period`)**: which registered goal row is "in effect" for a given category/month, per `BudgetGoal.ResolveEffective`:
    - `OneTime` — matches only its own `PeriodReference` (Year/Month); no automatic repetition.
    - `Monthly` — applies from its own `PeriodReference` onward, until a later `Monthly` row for the same category (a later `PeriodReference`) supersedes it.
    - A `OneTime` row wins over a `Monthly` one for the exact month it targets.
 5. **Formulas**:
-   - `Gasto_Real` (default, unless stated otherwise) = sum of the absolute value of `Confirmed` expenses in the same parent category in the same `Mês_Ano` (CC + CD combined). Centralized in `ActualSpendCalculator.SumForCategoryMonth`.
-   - `Saldo_Meta` = `Meta_Valor` − `Gasto_Real`.
-   - `% Utilizado` = `Gasto_Real` / `Meta_Valor`.
+   - `ActualSpend` (default, unless stated otherwise) = sum of the absolute value of `Confirmed` expenses in the same parent category in the same reference month/year (CC + CD combined). Centralized in `ActualSpendCalculator.SumForCategoryMonth`.
+   - `RemainingBudget` = `GoalAmount` − `ActualSpend`.
+   - `PercentUsed` = `ActualSpend` / `GoalAmount`.
 6. Categories without a goal in effect for the requested month don't appear in the budget goal sheet/query (but can appear in a separate report if requested via `list_transactions`).
 
 ## Code Conventions
@@ -157,9 +157,9 @@ These rules **govern** the behavior of the query and calculation MCP tools (`get
 - **C#:** Nullable reference types enabled, file-scoped namespaces, primary constructors when they improve clarity.
 - **Async:** all I/O-bound methods are `async`/`await`; `Async` suffix.
 - **DTOs:** never expose domain entities directly via MCP/SignalR/REST — map to DTOs/records.
-- **Money:** use `decimal` (never `double`/`float`) for `Valor`, `Meta_Valor`, `Gasto_Real`, `Saldo_Meta`.
-- **Dates:** treat `Data prevista`, `Data efetiva`, `Data Conciliado`, and `Venc. Fatura` as explicit date types (not string); centralize the "next business day" logic in a single helper, reused by `get_budget_status`.
-- **Category/Subcategory:** centralize the `Categoria-mãe/Subcategoria` parsing in a single helper/value object, reused by every MCP tool that aggregates by category.
+- **Money:** use `decimal` (never `double`/`float`) for `Amount`, `GoalAmount`, `ActualSpend`, `RemainingBudget`.
+- **Dates:** treat `ExpectedDate`, `ActualDate`, `ConfirmationDate`, and `InvoiceDueDate` as explicit date types (not string); centralize the "next business day" logic in a single helper, reused by `get_budget_status`.
+- **Category/Subcategory:** centralize the `ParentCategory/Subcategory` parsing in a single helper/value object (`Category`), reused by every MCP tool that aggregates by category.
 - **Validation:** FluentValidation for request/command validation in `FinancialMcp.Application`, applied via a MediatR pipeline behavior (see below), including statement format validation on import (`import_statement`).
 - **Naming:** methods in PascalCase on the C# side, camelCase on the client side (`ReceiveMessage` ↔ `receiveMessage`).
 
@@ -203,9 +203,9 @@ All MCP tools and REST endpoints must be **thin**: they only build the `IRequest
 
 - Unit test business rules in isolation from the handlers/MCP tools (extract them into services; tools/handlers should stay thin).
 - Specifically cover with tests:
-  - `Gasto_Real` aggregation by parent category vs. full subcategory.
-  - Exclusion of `Transferência`, `Pagamento`, and `Receita` from the budget goal calculation.
-  - Card #14: `needsConfirmation` flagging for past/today/future `ExpectedDate`; `Gasto_Real` counting only `Confirmed`; the per-status timestamp stamped on each `TransitionTo`; free-text fields rejected above 256 chars. (`TransactionTests`, `ActualSpendCalculatorTests`, `CreateTransactionCommandValidatorTests`.)
+  - `ActualSpend` aggregation by parent category vs. full subcategory.
+  - Exclusion of `Transfer`, `Payment`, and `Income` from the budget goal calculation.
+  - Card #14: `needsConfirmation` flagging for past/today/future `ExpectedDate`; `ActualSpend` counting only `Confirmed`; the per-status timestamp stamped on each `TransitionTo`; free-text fields rejected above 256 chars. (`TransactionTests`, `ActualSpendCalculatorTests`, `CreateTransactionCommandValidatorTests`.)
   - Card #16: `confirm_transaction` rejects confirming a transaction whose current `Status` is not `Scheduled` (both `Revision` and `Confirmed`), while an unknown id is left for the handler's 404 (`ConfirmTransactionCommandValidatorTests`, backed by a SQLite `:memory:` context).
   - Card #15: `list_revisions` returns rows oldest-first (`ListRevisionsQueryHandlerTests`); `approve_revision` rejects `confirm != true` (`ApproveRevisionCommandValidatorTests`); `approve_revision` throws `403`/`ForbiddenException` when the `approval` scope is missing and never dispatches to MediatR (`RevisionToolsTests` in `FinancialMcp.Api.Tests`); approval **moves** the row — new `transactions` row is `Scheduled`, `transaction_revisions` row is gone, `SubmittedForReviewAt` equals the revision's `CreatedAt` exactly, and a failure inside the unit rolls the insert + delete back together (`ApproveRevisionCommandHandlerTests`, backed by a SQLite `:memory:` context so `TransactionBehavior`'s real transaction is exercised).
 - Use `TestServer` + a real MCP client (or equivalent) for integration tests of the exposed tools.
@@ -233,6 +233,7 @@ This `CLAUDE.md` is the entry point, but it doesn't need to hold everything — 
 - [x] Persistence store: **PostgreSQL** (EF Core + Npgsql, Aspire resource).
 - [x] Auth provider: **Custom JWT** (its own issuance/validation, no Identity/Entra ID).
 - [x] **`approve_revision` + `list_revisions` MCP tools** (Card #15): `RevisionTools`. `approve_revision` promotes a `transaction_revisions` row to a **new** `transactions` row (`Status = Scheduled`), copies `transaction_revisions.CreatedAt` verbatim into `Transaction.SubmittedForReviewAt` (never regenerated), and deletes the revision row — insert + delete atomic. Gated by the new `approval` JWT scope (`403` at the tool level). `list_revisions` lists pending revisions oldest-first, read scope only. Not in scope for the card: deciding who is granted `approval`.
-- [x] **`confirm_transaction` MCP tool** (Card #14.1): `reconcile_transaction` renamed to `confirm_transaction` — moves a transaction to `Confirmed`, stamping `ConfirmedAt` and (checking accounts only) `confirmedDate`. Pure rename; `TransactionReconciledNotification` became `TransactionConfirmedNotification`.
+- [x] **`confirm_transaction` MCP tool** (Card #14.1): `reconcile_transaction` renamed to `confirm_transaction` — moves a transaction to `Confirmed`, stamping `ConfirmedAt` and (checking accounts only) `confirmationDate`. Pure rename; `TransactionReconciledNotification` became `TransactionConfirmedNotification`.
+- [x] **Rename Portuguese domain terms to English** (Card #19): `get_budget_status` response fields are `ActualSpend`/`RemainingBudget`/`PercentUsed`/`GoalAmount`; `BudgetGoal.GoalAmount` (was `BudgetAmount`/`Meta_Valor`) and `Transaction`/`TransactionRevision.ConfirmationDate` (was `ConfirmedDate`/`Data Conciliado`) are renamed at the entity, DTO and DB-column level (migration `Card19RenamePortugueseDomainTerms`); `ExpectedDate`/`ActualDate`/`InvoiceDueDate` were already English. The `Category` value object surfaces `ParentCategory`/`Subcategory`. `import_statement`'s CSV format, source column headers (`Categoria`, `Data prevista`, …) and parsing behaviour are unchanged — only the already-parsed values are mapped into the renamed domain properties.
 - [x] **`confirm_transaction` `Scheduled` precondition** (Card #16): `ConfirmTransactionCommandValidator` now rejects the request unless the transaction's current `Status == Scheduled` (a `Revision` or already-`Confirmed` row is rejected before the handler; an unknown id falls through to the handler's 404). The handler is unchanged: load by id → `TransitionTo(Confirmed, now)` (stamps `ConfirmedAt` once) → publish `TransactionConfirmedNotification`, committed by `TransactionBehavior`. Out of scope: a `needsConfirmation`-overdue-only guard, and the revert-to-`Scheduled` tool below.
 - [ ] **Revert-to-`Scheduled` MCP tool** (Card #14 follow-up): move a `Confirmed` transaction back to `Scheduled` (leaving the already-stamped `ConfirmedAt` untouched, per `TransitionTo`'s "stamp once" rule).

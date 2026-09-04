@@ -2,8 +2,8 @@ namespace FinancialMcp.Application.Transactions.CreateTransaction;
 
 /// <summary>Response DTO — never expose the Transaction domain entity directly (see CLAUDE.md > DTOs).</summary>
 /// <param name="RemainingBudget">
-/// Saldo_Meta for the transaction's parent category/reference month (goal amount minus
-/// Gasto_Real, computed as of this write — see ICategoryBudgetRemainingCalculator). Null when
+/// RemainingBudget for the transaction's parent category/reference month (goal amount minus
+/// ActualSpend, computed as of this write — see ICategoryBudgetRemainingCalculator). Null when
 /// no budget goal is in effect for that category/month, or when the tool doesn't compute it
 /// (get_transaction/list_transactions never populate this field).
 /// </param>
@@ -26,7 +26,7 @@ public sealed record TransactionDto(
     string RawCategory,
     DateOnly ExpectedDate,
     DateOnly? ActualDate,
-    DateOnly? ConfirmedDate,
+    DateOnly? ConfirmationDate,
     DateOnly? InvoiceDueDate,
     string? Recurrence,
     int? CurrentInstallment,

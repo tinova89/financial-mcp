@@ -27,7 +27,7 @@ public sealed class BudgetTools(IMediator mediator)
         - Only counts transactions with `Status = Confirmed` and `Type = Expense` — never
           `Revision`, `Scheduled`, `Income`, `Transfer`, or `Payment` (the checking account's
           "Pagamento de cartão" entry is excluded so credit-card spending isn't double-counted).
-        - The reference month is `ConfirmedDate` for checking-account transactions and
+        - The reference month is `ConfirmationDate` for checking-account transactions and
           `InvoiceDueDate` for credit-card transactions (`Transaction.GetReferenceMonthYear()`,
           driven by `Account.Kind`, not a stored transaction flag).
         - A goal always targets a parent category (never a subcategory) and sums every
@@ -41,8 +41,8 @@ public sealed class BudgetTools(IMediator mediator)
         - Categories with **no** goal in effect for this year/month are omitted entirely —
           this tool never invents a goal. Use `list_transactions` with category filters to
           see spending on categories that don't have one.
-        - `remainingBudget` (Saldo_Meta) = `budgetAmount - actualSpent` (can go negative when over budget).
-        - `utilizationPercentage` (% Utilizado) = `actualSpent / budgetAmount`, or `null` if `budgetAmount` is 0.
+        - `remainingBudget` = `goalAmount - actualSpend` (can go negative when over budget).
+        - `percentUsed` = `actualSpend / goalAmount`, or `null` if `goalAmount` is 0.
 
         ## Example
         ```json
@@ -50,8 +50,8 @@ public sealed class BudgetTools(IMediator mediator)
         ```
 
         ## Returns
-        A list of `BudgetStatusDto` (rawCategory, budgetAmount, actualSpent, remainingBudget,
-        utilizationPercentage, subcategoryBreakdown) — one entry per category with a goal in
+        A list of `BudgetStatusDto` (rawCategory, goalAmount, actualSpend, remainingBudget,
+        percentUsed, subcategoryBreakdown) — one entry per category with a goal in
         that month, omitting categories without one.
         """)]
     public Task<IReadOnlyList<BudgetStatusDto>> GetBudgetStatusAsync(
@@ -60,7 +60,7 @@ public sealed class BudgetTools(IMediator mediator)
 
     [McpServerTool(Name = "create_category_budget"), Description(
         """
-        Registers a budget goal (Meta_Valor) for a parent category and calendar month.
+        Registers a budget goal (goalAmount) for a parent category and calendar month.
 
         ## Parameters
         - **categoryId** — `Guid` of an existing parent `TransactionCategory`. Required.

@@ -56,8 +56,8 @@ public sealed class CategoryBudgetRemainingCalculator(IApplicationDbContext db) 
             actualSpent += Math.Abs(transaction.Amount);
         }
 
-        var remainingBudget = effectiveGoal.BudgetAmount - actualSpent;
-        decimal? remainingBudgetPercentage = effectiveGoal.BudgetAmount == 0m ? null : remainingBudget / effectiveGoal.BudgetAmount;
+        var remainingBudget = effectiveGoal.GoalAmount - actualSpent;
+        decimal? remainingBudgetPercentage = effectiveGoal.GoalAmount == 0m ? null : remainingBudget / effectiveGoal.GoalAmount;
 
         return new CategoryBudgetRemaining(remainingBudget, remainingBudgetPercentage);
     }

@@ -27,8 +27,9 @@ internal class AccountMap : ClassMap<Transaction>
 
         // Checking-account only (see CLAUDE.md > Budget goals, item 3). Harmless for
         // credit-card rows: the "Data Conciliado" column simply doesn't exist there,
-        // so with MissingFieldFound suppressed this just stays null.
-        Map(m => m.ConfirmedDate).Name("Data Conciliado").TypeConverter<OptionalDdMmYyyyDateConverter>();
+        // so with MissingFieldFound suppressed this just stays null. The source column
+        // header stays "Data Conciliado"; only the mapped domain property is renamed.
+        Map(m => m.ConfirmationDate).Name("Data Conciliado").TypeConverter<OptionalDdMmYyyyDateConverter>();
     }
 }
 

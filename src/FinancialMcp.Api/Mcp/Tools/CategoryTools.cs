@@ -22,7 +22,7 @@ public sealed class CategoryTools(IMediator mediator)
         - Read-only.
         - Categories are read from the persisted category table, but that table has no
           create/update tool of its own — rows are only ever registered as a side effect of
-          creating/importing/updating a transaction (its raw `Categoria-mãe/Subcategoria`
+          creating/importing/updating a transaction (its raw `ParentCategory/Subcategory`
           string is split on `/` and get-or-created at that point). A category only appears
           here if at least one transaction has used it.
         - Grouped by parent category, each with the distinct list of subcategories seen

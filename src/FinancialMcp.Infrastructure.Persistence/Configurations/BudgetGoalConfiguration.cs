@@ -12,7 +12,7 @@ public sealed class BudgetGoalConfiguration : IEntityTypeConfiguration<BudgetGoa
         builder.HasKey(m => m.Id);
 
         builder.Property(m => m.CurrencyCode).HasMaxLength(3).IsRequired();
-        builder.Property(m => m.BudgetAmount).HasColumnType("numeric(14,2)").IsRequired();
+        builder.Property(m => m.GoalAmount).HasColumnType("numeric(14,2)").IsRequired();
         builder.Property(m => m.CreatedAt).HasColumnType("timestamptz");
         builder.Property(m => m.UpdatedAt).HasColumnType("timestamptz");
         builder.Property(m => m.DeletedAt).HasColumnType("timestamptz");

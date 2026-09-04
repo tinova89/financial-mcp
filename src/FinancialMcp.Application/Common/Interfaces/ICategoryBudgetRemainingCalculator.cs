@@ -3,7 +3,7 @@ using FinancialMcp.Domain.Entities;
 namespace FinancialMcp.Application.Common.Interfaces;
 
 /// <summary>
-/// Computes the remaining budget (Saldo_Meta) and remaining percentage for a single
+/// Computes the remaining budget (RemainingBudget) and remaining percentage for a single
 /// transaction's parent category/reference month, applying the same rules as
 /// GetBudgetStatusQueryHandler (see CLAUDE.md > Business Rules > Budget goals). Used by
 /// create_transaction/update_transaction/delete_transaction to report the post-write budget
@@ -17,7 +17,7 @@ public interface ICategoryBudgetRemainingCalculator
     /// against (e.g. the updated fields, before SaveChangesAsync has run).
     /// </param>
     /// <param name="includeTransaction">
-    /// True to count this transaction's own amount toward Gasto_Real (create/update, where the
+    /// True to count this transaction's own amount toward ActualSpend (create/update, where the
     /// transaction still exists after the write); false to exclude it entirely (delete).
     /// </param>
     Task<CategoryBudgetRemaining> CalculateAsync(Transaction transaction, bool includeTransaction, CancellationToken cancellationToken);
