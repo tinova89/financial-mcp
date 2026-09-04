@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FinancialMcp.Application\FinancialMcp.Application.csproj" />
     <ProjectReference Include="..\..\src\FinancialMcp.Domain\FinancialMcp.Domain.csproj" />
+    <ProjectReference Include="..\..\src\FinancialMcp.Infrastructure\FinancialMcp.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\FinancialMcp.Infrastructure.Persistence\FinancialMcp.Infrastructure.Persistence.csproj" />
   </ItemGroup>
 
