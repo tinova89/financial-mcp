@@ -112,7 +112,7 @@ public class CreateTransactionCommandValidatorTests
     [Fact]
     public async Task Requires_invoice_due_date_when_the_account_id_is_a_credit_card()
     {
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
         var creditCard = RevisionSeed.NewCreditCard("Nubank Card", checkingAccount);
 
         var result = await BuildValidator(checkingAccount, creditCard).TestValidateAsync(
@@ -124,7 +124,7 @@ public class CreateTransactionCommandValidatorTests
     [Fact]
     public async Task Does_not_require_invoice_due_date_for_a_checking_account()
     {
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
 
         var result = await BuildValidator(checkingAccount).TestValidateAsync(
             ValidCommand(accountId: checkingAccount.Id, invoiceDueDate: null));
@@ -135,7 +135,7 @@ public class CreateTransactionCommandValidatorTests
     [Fact]
     public async Task Requires_installment_fields_when_recurrence_is_installment_for_a_credit_card_account()
     {
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
         var creditCard = RevisionSeed.NewCreditCard("Nubank Card", checkingAccount);
 
         var result = await BuildValidator(checkingAccount, creditCard).TestValidateAsync(ValidCommand(
@@ -152,7 +152,7 @@ public class CreateTransactionCommandValidatorTests
     [Fact]
     public async Task Rejects_a_total_installments_lower_than_the_current_installment()
     {
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
         var creditCard = RevisionSeed.NewCreditCard("Nubank Card", checkingAccount);
 
         var result = await BuildValidator(checkingAccount, creditCard).TestValidateAsync(ValidCommand(
@@ -168,7 +168,7 @@ public class CreateTransactionCommandValidatorTests
     [Fact]
     public async Task Accepts_valid_installment_fields_for_a_credit_card_account()
     {
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
         var creditCard = RevisionSeed.NewCreditCard("Nubank Card", checkingAccount);
 
         var result = await BuildValidator(checkingAccount, creditCard).TestValidateAsync(ValidCommand(
@@ -187,7 +187,7 @@ public class CreateTransactionCommandValidatorTests
     {
         // Credit-card-only rules are gated on the referenced account's actual Kind — a
         // checking-account row is never checked against them, regardless of Recurrence.
-        var checkingAccount = RevisionSeed.NewAccount();
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260();
 
         var result = await BuildValidator(checkingAccount).TestValidateAsync(ValidCommand(
             accountId: checkingAccount.Id,

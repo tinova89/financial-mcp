@@ -18,7 +18,7 @@ public class ListRevisionsQueryHandlerTests
 {
     private static TransactionRevision Revision(string description, DateTimeOffset createdAt, decimal amount = -123.45m)
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var parent = RevisionSeed.NewParentTransaction(account, category);
 

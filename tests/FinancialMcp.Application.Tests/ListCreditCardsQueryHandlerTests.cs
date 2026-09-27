@@ -19,7 +19,7 @@ public class ListCreditCardsQueryHandlerTests
         using var db = new SqliteInMemoryDatabase();
         await using (var seed = db.NewContext())
         {
-            var payer = RevisionSeed.NewAccount("Payer");
+            var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
             seed.Accounts.Add(payer);
             seed.CreditCards.Add(RevisionSeed.NewCreditCard("Zeta Card", payer));
             seed.CreditCards.Add(RevisionSeed.NewCreditCard("Alpha Card", payer));
@@ -36,7 +36,7 @@ public class ListCreditCardsQueryHandlerTests
     public async Task Maps_closing_day_due_day_and_payment_account_id_correctly()
     {
         using var db = new SqliteInMemoryDatabase();
-        var payer = RevisionSeed.NewAccount("Payer");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var card = RevisionSeed.NewCreditCard("Card", payer, closingDay: 10, dueDay: 20);
 
         await using (var seed = db.NewContext())
@@ -59,7 +59,7 @@ public class ListCreditCardsQueryHandlerTests
     public async Task Kind_is_always_credit()
     {
         using var db = new SqliteInMemoryDatabase();
-        var payer = RevisionSeed.NewAccount("Payer");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var card = RevisionSeed.NewCreditCard("Card", payer);
 
         await using (var seed = db.NewContext())
@@ -79,7 +79,7 @@ public class ListCreditCardsQueryHandlerTests
     public async Task Maps_every_dto_field()
     {
         using var db = new SqliteInMemoryDatabase();
-        var payer = RevisionSeed.NewAccount("Payer");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var card = RevisionSeed.NewCreditCard("Nubank Card", payer, closingDay: 7, dueDay: 14);
         card.InitialAmount = -250m;
 

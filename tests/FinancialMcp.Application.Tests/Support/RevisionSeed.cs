@@ -7,7 +7,7 @@ namespace FinancialMcp.Application.Tests.Support;
 /// <summary>Shared entity-graph builders reused across the Application handler/validator tests.</summary>
 internal static class RevisionSeed
 {
-    public static Account NewAccount(string name = "Nubank") => new()
+    public static Account NewCheckingAccountBanckCode260(string name = "Nubank") => new()
     {
         DisplayName = name,
         BankCode = "260",
@@ -83,7 +83,7 @@ internal static class RevisionSeed
     public static async Task<(Account Account, TransactionCategory Category, Transaction Parent)> SeedGraphAsync(
         ApplicationDbContext context)
     {
-        var account = NewAccount();
+        var account = NewCheckingAccountBanckCode260();
         var category = NewCategory();
         var parent = NewParentTransaction(account, category);
 

@@ -49,7 +49,7 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task Monthly_goal_applies_from_its_own_month_onward_when_no_later_goal_supersedes()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("Moradia");
         var goal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 3, 500m);
         var expense = NewExpense(account, category, new DateOnly(2026, 5, 10), confirmationDate: new DateOnly(2026, 5, 10), amount: -100m);
@@ -75,7 +75,7 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task Monthly_goal_is_superseded_by_a_later_monthly_goal_for_the_same_category()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("Moradia");
         var earlierGoal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 3, 500m);
         var laterGoal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 4, 700m);
@@ -142,8 +142,8 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task Reference_month_uses_confirmation_date_for_checking_accounts_and_invoice_due_date_for_credit_cards()
     {
         using var db = new SqliteInMemoryDatabase();
-        var checkingAccount = RevisionSeed.NewAccount("Checking");
-        var payer = RevisionSeed.NewAccount("Payer");
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var creditCard = RevisionSeed.NewCreditCard("Card", payer);
         var category = RevisionSeed.NewCategory("Moradia");
         var goal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 1, 10000m);
@@ -173,7 +173,7 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task Remaining_budget_and_percent_used_formulas()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("Moradia");
         var goal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 1, 500m);
         var e1 = NewExpense(account, category, new DateOnly(2026, 5, 1), confirmationDate: new DateOnly(2026, 5, 1), amount: -150m);
@@ -203,7 +203,7 @@ public class GetBudgetStatusQueryHandlerTests
         // Seeded directly, bypassing the create-path validator's GreaterThan(0) rule — this
         // exercises the query handler's own defensive branch, not a create_category_budget scenario.
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("Moradia");
         var goal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 1, 0m);
         var expense = NewExpense(account, category, new DateOnly(2026, 5, 1), confirmationDate: new DateOnly(2026, 5, 1), amount: -50m);
@@ -229,7 +229,7 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task A_category_with_transactions_but_no_effective_goal_is_excluded_entirely()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("SemOrcamento");
         var expense = NewExpense(account, category, new DateOnly(2026, 5, 1), confirmationDate: new DateOnly(2026, 5, 1));
 
@@ -251,7 +251,7 @@ public class GetBudgetStatusQueryHandlerTests
     public async Task Non_expense_or_non_confirmed_transactions_never_contribute_to_actual_spend()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory("Moradia");
         var goal = RevisionSeed.NewBudgetGoal(category, BudgetPeriodType.Monthly, 2026, 1, 500m);
 

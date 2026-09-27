@@ -58,7 +58,7 @@ public class ImportStatementCommandHandlerTests
     public async Task Routes_to_the_parser_with_is_credit_card_true_when_the_account_id_is_a_credit_card()
     {
         using var db = new SqliteInMemoryDatabase();
-        var payer = RevisionSeed.NewAccount("Payer");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var creditCard = RevisionSeed.NewCreditCard("Card", payer);
 
         await using (var seed = db.NewContext())
@@ -81,7 +81,7 @@ public class ImportStatementCommandHandlerTests
     public async Task Routes_to_the_parser_with_is_credit_card_false_when_the_account_id_is_a_checking_account()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Checking");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
 
         await using (var seed = db.NewContext())
         {
@@ -102,7 +102,7 @@ public class ImportStatementCommandHandlerTests
     public async Task Result_dto_passes_through_lines_imported_and_warnings_from_the_parser_verbatim()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Checking");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
         var category = RevisionSeed.NewCategory();
 
         await using (var seed = db.NewContext())
@@ -129,7 +129,7 @@ public class ImportStatementCommandHandlerTests
     public async Task Every_parsed_transaction_is_resolved_and_added_to_the_context()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Checking");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
         var category = RevisionSeed.NewCategory();
 
         await using (var seed = db.NewContext())
@@ -161,7 +161,7 @@ public class ImportStatementCommandHandlerTests
     public async Task The_whole_batch_commits_atomically_via_transaction_behavior()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Checking");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
         var category = RevisionSeed.NewCategory();
 
         await using (var seed = db.NewContext())

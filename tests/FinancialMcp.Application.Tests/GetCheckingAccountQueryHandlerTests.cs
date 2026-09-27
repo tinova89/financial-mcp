@@ -16,7 +16,7 @@ public class GetCheckingAccountQueryHandlerTests
     public async Task Returns_the_dto_for_a_known_checking_account_id()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Nubank");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Nubank");
 
         await using (var seed = db.NewContext())
         {
@@ -48,7 +48,7 @@ public class GetCheckingAccountQueryHandlerTests
     public async Task Throws_not_found_for_a_credit_card_id_passed_as_the_checking_account_id()
     {
         using var db = new SqliteInMemoryDatabase();
-        var paymentAccount = RevisionSeed.NewAccount("Payer");
+        var paymentAccount = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var creditCard = RevisionSeed.NewCreditCard("Card", paymentAccount);
 
         await using (var seed = db.NewContext())

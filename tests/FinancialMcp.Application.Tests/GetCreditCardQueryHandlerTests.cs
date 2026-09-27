@@ -16,7 +16,7 @@ public class GetCreditCardQueryHandlerTests
     public async Task Returns_the_dto_for_a_known_credit_card_id()
     {
         using var db = new SqliteInMemoryDatabase();
-        var payer = RevisionSeed.NewAccount("Payer");
+        var payer = RevisionSeed.NewCheckingAccountBanckCode260("Payer");
         var card = RevisionSeed.NewCreditCard("Card", payer);
 
         await using (var seed = db.NewContext())
@@ -50,7 +50,7 @@ public class GetCreditCardQueryHandlerTests
     public async Task Throws_not_found_for_a_checking_account_id_passed_as_the_credit_card_id()
     {
         using var db = new SqliteInMemoryDatabase();
-        var checkingAccount = RevisionSeed.NewAccount("Checking");
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
 
         await using (var seed = db.NewContext())
         {

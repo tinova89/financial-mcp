@@ -71,7 +71,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_type()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var expense = NewTransaction(account, category, Today, type: TransactionType.Expense);
         var income = NewTransaction(account, category, Today, type: TransactionType.Income);
@@ -85,7 +85,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_status()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var scheduled = NewTransaction(account, category, Today, status: TransactionStatus.Scheduled);
         var confirmed = NewTransaction(account, category, Today, status: TransactionStatus.Confirmed, confirmationDate: Today);
@@ -99,8 +99,8 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_account_id()
     {
-        var accountA = RevisionSeed.NewAccount("A");
-        var accountB = RevisionSeed.NewAccount("B");
+        var accountA = RevisionSeed.NewCheckingAccountBanckCode260("A");
+        var accountB = RevisionSeed.NewCheckingAccountBanckCode260("B");
         var category = RevisionSeed.NewCategory();
         var txA = NewTransaction(accountA, category, Today);
         var txB = NewTransaction(accountB, category, Today);
@@ -114,7 +114,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_mandatory_period_range()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var inside = NewTransaction(account, category, Today);
         var outside = NewTransaction(account, category, Today.AddYears(-5));
@@ -128,7 +128,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_parent_category_matching_either_the_category_itself_or_a_subcategory_under_it()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var moradia = new TransactionCategory { Name = "Moradia" };
         var aluguel = new TransactionCategory { Name = "Aluguel", ParentCategoryId = moradia.Id, ParentCategory = moradia };
         var lazer = new TransactionCategory { Name = "Lazer" };
@@ -146,7 +146,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_subcategory_exact_match()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var moradia = new TransactionCategory { Name = "Moradia" };
         var aluguel = new TransactionCategory { Name = "Aluguel", ParentCategoryId = moradia.Id, ParentCategory = moradia };
         var seguro = new TransactionCategory { Name = "Seguro", ParentCategoryId = moradia.Id, ParentCategory = moradia };
@@ -163,8 +163,8 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Filters_by_year_and_month_via_reference_month_year()
     {
-        var checkingAccount = RevisionSeed.NewAccount("Checking");
-        var creditCard = RevisionSeed.NewCreditCard("Card", RevisionSeed.NewAccount("Payer"));
+        var checkingAccount = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
+        var creditCard = RevisionSeed.NewCreditCard("Card", RevisionSeed.NewCheckingAccountBanckCode260("Payer"));
         var category = RevisionSeed.NewCategory();
 
         var checkingInMonth = NewTransaction(
@@ -186,7 +186,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Orders_by_expected_date_descending()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var oldest = NewTransaction(account, category, Today.AddDays(-2));
         var newest = NewTransaction(account, category, Today);
@@ -201,7 +201,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Paginates_using_page_and_page_size()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var t1 = NewTransaction(account, category, Today.AddDays(-1));
         var t2 = NewTransaction(account, category, Today.AddDays(-2));
@@ -217,7 +217,7 @@ public class ListTransactionsQueryHandlerTests
     [Fact]
     public async Task Computes_needs_confirmation_per_row_relative_to_today()
     {
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var category = RevisionSeed.NewCategory();
         var scheduledPast = NewTransaction(account, category, Today.AddDays(-1), status: TransactionStatus.Scheduled);
         var scheduledFuture = NewTransaction(account, category, Today.AddDays(1), status: TransactionStatus.Scheduled);
@@ -238,7 +238,7 @@ public class ListTransactionsQueryHandlerTests
         // Locked-in current-behavior test — not a bug fix. Both rows match every SQL-level
         // filter (Type/Status/AccountId/Period), so TotalCount counts both; the Subcategory
         // filter only runs afterward, in memory, against the already-paged page.
-        var account = RevisionSeed.NewAccount();
+        var account = RevisionSeed.NewCheckingAccountBanckCode260();
         var moradia = new TransactionCategory { Name = "Moradia" };
         var aluguel = new TransactionCategory { Name = "Aluguel", ParentCategoryId = moradia.Id, ParentCategory = moradia };
 

@@ -20,9 +20,9 @@ public class ListCheckingAccountsQueryHandlerTests
         using var db = new SqliteInMemoryDatabase();
         await using (var seed = db.NewContext())
         {
-            seed.Accounts.Add(RevisionSeed.NewAccount("Zurich"));
-            seed.Accounts.Add(RevisionSeed.NewAccount("Alpha"));
-            seed.Accounts.Add(RevisionSeed.NewAccount("Mercury"));
+            seed.Accounts.Add(RevisionSeed.NewCheckingAccountBanckCode260("Zurich"));
+            seed.Accounts.Add(RevisionSeed.NewCheckingAccountBanckCode260("Alpha"));
+            seed.Accounts.Add(RevisionSeed.NewCheckingAccountBanckCode260("Mercury"));
             await seed.SaveChangesAsync();
         }
 
@@ -41,9 +41,9 @@ public class ListCheckingAccountsQueryHandlerTests
 
         await using (var seed = db.NewContext())
         {
-            var noCardsAccount = RevisionSeed.NewAccount("NoCards");
-            var oneCardAccount = RevisionSeed.NewAccount("OneCard");
-            var twoCardsAccount = RevisionSeed.NewAccount("TwoCards");
+            var noCardsAccount = RevisionSeed.NewCheckingAccountBanckCode260("NoCards");
+            var oneCardAccount = RevisionSeed.NewCheckingAccountBanckCode260("OneCard");
+            var twoCardsAccount = RevisionSeed.NewCheckingAccountBanckCode260("TwoCards");
             seed.Accounts.AddRange(noCardsAccount, oneCardAccount, twoCardsAccount);
 
             var cardA = RevisionSeed.NewCreditCard("CardA", oneCardAccount);
@@ -77,7 +77,7 @@ public class ListCheckingAccountsQueryHandlerTests
 
         await using (var seed = db.NewContext())
         {
-            var checking = RevisionSeed.NewAccount("Checking");
+            var checking = RevisionSeed.NewCheckingAccountBanckCode260("Checking");
             seed.Accounts.Add(checking);
             seed.CreditCards.Add(RevisionSeed.NewCreditCard("Card", checking));
             await seed.SaveChangesAsync();
@@ -95,7 +95,7 @@ public class ListCheckingAccountsQueryHandlerTests
     public async Task Maps_every_dto_field()
     {
         using var db = new SqliteInMemoryDatabase();
-        var account = RevisionSeed.NewAccount("Nubank");
+        var account = RevisionSeed.NewCheckingAccountBanckCode260("Nubank");
         account.InitialAmount = 1500m;
 
         await using (var seed = db.NewContext())
