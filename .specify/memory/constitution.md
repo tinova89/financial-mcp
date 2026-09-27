@@ -22,9 +22,9 @@ Templates requiring updates:
   ✅ .specify/templates/* — not modified (read the constitution at runtime; out of scope here)
 
 Follow-up TODOs:
-  - CLAUDE.md "Always load" imports @specs/constitution.md, and it links to specs/domain/*,
-    specs/architecture.md and specs/backlog.md; none of these exist yet. Either create
-    specs/constitution.md (e.g. pointing at or mirroring this file) or retarget the import.
+  - ✅ CLAUDE.md "Always load" import retargeted to @.specify/memory/constitution.md.
+  - ✅ CLAUDE.md links to specs/domain/* (business-rules, glossary, mcp-tools),
+    specs/architecture.md and specs/backlog.md now resolve — all files exist.
   - Quality Gate "dotnet test is green" conflicts with the known pre-existing HealthCheck test
     failure that needs a running Postgres; that test must be tagged/isolated as infrastructure-
     dependent (see Principle IV) so the default run can be green.

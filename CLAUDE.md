@@ -6,18 +6,18 @@ This project follows **Spec-Driven Development (SDD)**: the specs in [`/specs`](
 
 ## Always load
 
-@specs/constitution.md
+@.specify/memory/constitution.md
 
 ## Where things live
 
 | Need | Read |
 |---|---|
-| Non-negotiable rules (money, dates, soft delete, DTOs, CQRS, `X-Account-Group`) | [`specs/constitution.md`](specs/constitution.md) |
+| Non-negotiable rules (money, dates, soft delete, DTOs, CQRS, `X-Account-Group`) | [`.specify/memory/constitution.md`](.specify/memory/constitution.md) |
 | Budget formulas, status rules, category rules | [`specs/domain/business-rules.md`](specs/domain/business-rules.md) |
 | Domain terms and enum values | [`specs/domain/glossary.md`](specs/domain/glossary.md) |
 | MCP tools (params, behavior, scopes) and REST endpoints | [`specs/domain/mcp-tools.md`](specs/domain/mcp-tools.md) |
 | Aspire, persistence, auth, account group | [`specs/architecture.md`](specs/architecture.md) |
-| A feature (what / how / steps) | `specs/features/<NNN-name>/spec.md` · `plan.md` · `tasks.md` |
+| A feature (what / how / steps) | `specs/<NNN-FT-name>/spec.md` · `plan.md` · `tasks.md` |
 | What's next | [`specs/backlog.md`](specs/backlog.md) |
 
 ## Commands
