@@ -1,24 +1,24 @@
 # CLAUDE.md
 
-Financial **MCP Server** (.NET 10 + Aspire, PostgreSQL/EF Core, custom JWT) that lets Claude query, insert and modify transactions for **Checking Accounts (CC)** and **Credit Cards (CD)**, plus monthly **budget goals** per parent category.
+A financial **MCP Server** (.NET 10 + Aspire, PostgreSQL/EF Core, custom JWT). It lets Claude read, add and change transactions for **Checking Accounts (CC)** and **Credit Cards (CD)**. It also has monthly **budget goals** for each parent category.
 
-This project follows **Spec-Driven Development (SDD)**: the specs in [`/specs`](specs/) are the source of truth; code is derived from them.
+This project uses **Spec-Driven Development (SDD)**: the specs in [`/specs`](specs/) are the source of truth. We write the code from them.
 
 ## Always load
 
 @.specify/memory/constitution.md
 
-## Where things live
+## Where to find things
 
-| Need | Read |
+| What you need | Read |
 |---|---|
-| Non-negotiable rules (money, dates, soft delete, DTOs, CQRS, `X-Account-Group`) | [`.specify/memory/constitution.md`](.specify/memory/constitution.md) |
+| Rules you must always follow (money, dates, soft delete, DTOs, CQRS, `X-Account-Group`) | [`.specify/memory/constitution.md`](.specify/memory/constitution.md) |
 | Budget formulas, status rules, category rules | [`specs/domain/business-rules.md`](specs/domain/business-rules.md) |
 | Domain terms and enum values | [`specs/domain/glossary.md`](specs/domain/glossary.md) |
-| MCP tools (params, behavior, scopes) and REST endpoints | [`specs/domain/mcp-tools.md`](specs/domain/mcp-tools.md) |
+| MCP tools (parameters, behavior, scopes) and REST endpoints | [`specs/domain/mcp-tools.md`](specs/domain/mcp-tools.md) |
 | Aspire, persistence, auth, account group | [`specs/architecture.md`](specs/architecture.md) |
 | A feature (what / how / steps) | `specs/<NNN-FT-name>/spec.md` · `plan.md` · `tasks.md` |
-| What's next | [`specs/backlog.md`](specs/backlog.md) |
+| What comes next | [`specs/backlog.md`](specs/backlog.md) |
 
 ## Commands
 
@@ -37,7 +37,7 @@ src/
   FinancialMcp.AppHost          Aspire orchestration (entry point)
   FinancialMcp.ServiceDefaults  health checks, telemetry, resilience
   FinancialMcp.Api              REST + MCP host (tools in Mcp/Tools)
-  FinancialMcp.Application      MediatR handlers, validators, services (one folder per feature)
+  FinancialMcp.Application      MediatR handlers, validators, services (one folder for each feature)
   FinancialMcp.Domain           entities, value objects, enums
   FinancialMcp.Infrastructure   EF Core, CSV import, integrations
 tests/
@@ -45,20 +45,20 @@ tests/
   FinancialMcp.Application.Tests
 ```
 
-## SDD workflow (per feature)
+## SDD workflow (for each feature)
 
-1. **Specify** → `spec.md` (what/why, user stories, acceptance criteria, no class names).
-2. **Clarify** → resolve the "Open questions" in `spec.md` before planning.
+1. **Specify** → `spec.md` (what and why, user stories, acceptance criteria, no class names).
+2. **Clarify** → answer the "Open questions" in `spec.md` before you plan.
 3. **Plan** → `plan.md` (migrations, handlers, validators, contracts).
-4. **Tasks** → `tasks.md` (small, ordered, checkable steps).
-5. **Implement** → read `spec.md` + `plan.md` + constitution, then work through `tasks.md`.
+4. **Tasks** → `tasks.md` (small steps, in order, that you can check).
+5. **Implement** → read `spec.md` + `plan.md` + the constitution, then do the steps in `tasks.md`.
 
 Templates: [`specs/_templates/`](specs/_templates/).
 
-## Before finishing any feature
+## Before you finish a feature
 
-- Every acceptance criterion in `spec.md` is checked and every task in `tasks.md` is done.
+- Every acceptance criterion in `spec.md` is checked, and every task in `tasks.md` is done.
 - `dotnet build` and `dotnet test` pass.
-- If behavior changed, update the spec docs **first** (`business-rules.md`, `glossary.md`, `mcp-tools.md`) — never leave them behind the code.
+- If the behavior changed, update the spec docs **first** (`business-rules.md`, `glossary.md`, `mcp-tools.md`). The docs must never be older than the code.
 - Set the feature `Status:` to `Implemented` and update `specs/backlog.md`.
-- Don't add feature-specific detail here — it belongs in the feature folder.
+- Do not add details about one feature here. They go in the feature folder.

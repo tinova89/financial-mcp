@@ -1,33 +1,21 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (unversioned template) → 1.0.0
-Bump rationale: first ratified constitution; every placeholder replaced with concrete governance.
+Version change: 1.0.0 → 1.0.1
+Bump rationale: PATCH. We rewrote the text in simple English (A2 level). The meaning of the
+principles, gates and rules did not change.
 
-Modified principles (template slot → new title):
-  [PRINCIPLE_1_NAME] → I. Spec Is the Source of Truth
-  [PRINCIPLE_2_NAME] → II. Thin Entry Points, Isolated Rules
-  [PRINCIPLE_3_NAME] → III. Every Behavior Is Tested (NON-NEGOTIABLE)
-  [PRINCIPLE_4_NAME] → IV. Test Fidelity Matches the Risk
-  [PRINCIPLE_5_NAME] → V. Financial Correctness by Construction
-  (added)            → VI. Maintainability and Simplicity
-
-Added sections:
-  - Quality Gates (was [SECTION_2_NAME])
-  - Development Workflow (was [SECTION_3_NAME])
-
+Modified principles: none (only wording).
+Added sections: none
 Removed sections: none
 
-Templates requiring updates:
-  ✅ .specify/templates/* — not modified (read the constitution at runtime; out of scope here)
+Templates that need updates:
+  ✅ .specify/templates/* — not changed (they read the constitution at runtime).
 
 Follow-up TODOs:
-  - ✅ CLAUDE.md "Always load" import retargeted to @.specify/memory/constitution.md.
-  - ✅ CLAUDE.md links to specs/domain/* (business-rules, glossary, mcp-tools),
-    specs/architecture.md and specs/backlog.md now resolve — all files exist.
-  - Quality Gate "dotnet test is green" conflicts with the known pre-existing HealthCheck test
-    failure that needs a running Postgres; that test must be tagged/isolated as infrastructure-
-    dependent (see Principle IV) so the default run can be green.
+  - Quality Gate "dotnet test is green" conflicts with the known HealthCheck test failure that
+    needs a running Postgres. We must tag/isolate that test as infrastructure-dependent (see
+    Principle IV) so the default run can be green.
 -->
 
 # FinancialMcp Constitution
@@ -36,144 +24,148 @@ Follow-up TODOs:
 
 ### I. Spec Is the Source of Truth
 
-- Behavior is defined in the specs (`specs/`, feature `spec.md`/`plan.md`/`tasks.md`) and the
-  domain rule documents; code is derived from them, never the other way around.
-- Any change that alters observable behavior (MCP tool contract, REST contract, business rule,
-  calculation, enum value, validation rule) MUST update the governing spec document **in the same
-  change**, before or together with the code. A spec that lags the code is a defect.
-- Known deviations between documentation and code (e.g. a parser quirk locked in by a test) MUST
-  be written down explicitly where the rule is documented, not left implicit.
+- The specs (`specs/`, feature `spec.md`/`plan.md`/`tasks.md`) and the domain rule documents
+  define the behavior. We write the code from them, never the other way.
+- A change to behavior that people can see (MCP tool contract, REST contract, business rule,
+  calculation, enum value, validation rule) MUST update the spec document for it **in the same
+  change**, before the code or together with it. A spec that is older than the code is a bug.
+- Known differences between the docs and the code (for example, a parser problem that a test
+  locks in) MUST be written clearly in the place where the rule is documented. Do not leave them
+  hidden.
 
-Rationale: Claude and humans both navigate this system through its specs; stale specs cause wrong
-calculations and wrong tool usage downstream.
+Why: Claude and people both understand this system through its specs. Old specs cause wrong
+calculations and wrong use of the tools later.
 
 ### II. Thin Entry Points, Isolated Rules
 
-- MCP tools and REST endpoints MUST only build a MediatR request and call `Send`/`Publish`. No
-  business rule, query logic or validation lives in a tool, endpoint or controller.
-- Every use case is one request + one handler (+ validator) in its own feature folder, split into
-  Commands (writes) and Queries (reads).
-- Pure calculation rules (budget aggregation, reference month, next business day, category
-  parsing, installments) MUST live in injectable domain/application services or value objects so
-  they can be unit-tested without a handler, a database or a transport.
-- Cross-cutting concerns (logging, validation, database transactions) MUST be implemented once as
-  pipeline behaviors, not repeated per handler.
+- MCP tools and REST endpoints MUST only build a MediatR request and call `Send`/`Publish`. A
+  tool, endpoint or controller has no business rules, no query logic and no validation.
+- Each use case is one request + one handler (+ validator) in its own feature folder. They are
+  split into Commands (writes) and Queries (reads).
+- Pure calculation rules (budget totals, reference month, next business day, category parsing,
+  installments) MUST be in injectable domain/application services or value objects. Then we can
+  unit test them without a handler, a database or a transport.
+- Shared concerns (logging, validation, database transactions) MUST be built one time as pipeline
+  behaviors. Do not repeat them in each handler.
 
-Rationale: isolating rules from transport and persistence is what makes them cheap to test and
-safe to change.
+Why: when rules are separate from transport and persistence, they are cheap to test and safe to
+change.
 
 ### III. Every Behavior Is Tested (NON-NEGOTIABLE)
 
-- A feature is not done until each acceptance criterion in its `spec.md` is covered by at least
-  one automated test that fails if the criterion is violated.
+- A feature is not done until each acceptance criterion in its `spec.md` has at least one
+  automated test. That test must fail if the criterion is broken.
 - Every handler, validator and domain service MUST have tests for: the success path, each
-  validation/guard rejection, the not-found path where applicable, and every documented edge case.
-- Every bug fix MUST add a regression test that fails before the fix and passes after it.
-- Known, deliberately unfixed quirks MUST be locked in by a test that documents the current
-  behavior and references where it is tracked, so any change to it is a conscious decision.
-- Tests use the project's standard stack — xUnit, FluentAssertions, NSubstitute — and follow
-  Arrange/Act/Assert with names that state the scenario and expected outcome.
-- Tests MUST be deterministic: no dependence on wall-clock "today", execution order, shared
-  mutable state or external network. Time is injected (e.g. `TimeProvider`/clock abstraction).
+  validation/guard rejection, the not-found path (when there is one), and every documented edge
+  case.
+- Every bug fix MUST add a regression test. It fails before the fix and passes after it.
+- Known problems that we decide not to fix MUST be locked in by a test. The test shows the current
+  behavior and says where the problem is tracked. So any change to it is a conscious decision.
+- Tests use the project's standard tools — xUnit, FluentAssertions, NSubstitute — and follow
+  Arrange/Act/Assert. Test names say the scenario and the expected result.
+- Tests MUST always give the same result: they must not depend on the real clock ("today"), the
+  order they run in, shared state that changes, or an external network. Time is injected (for
+  example `TimeProvider`/a clock abstraction).
 
-Rationale: this system moves money-shaped data on behalf of an AI agent; untested behavior is
-unverified behavior.
+Why: this system works with money data for an AI agent. Behavior with no tests is behavior that
+nobody checked.
 
 ### IV. Test Fidelity Matches the Risk
 
-- Unit tests (mocks/substitutes) are the default for pure rules and handler orchestration.
-- SQLite `:memory:` is used when a test needs real transactions or real EF Core query filters
-  (soft delete, TPH scoping). EF Core's `InMemory` provider MUST NOT be used for these.
-- A real-PostgreSQL integration test (`Testcontainers.PostgreSql`) is REQUIRED — a green SQLite
-  test is not sufficient evidence — whenever code:
-  - pushes an aggregation of money values into SQL (`SumAsync`, translated `GroupBy`, etc.)
-    instead of materializing rows and summing in C# `decimal`;
-  - depends on concurrent writes, transaction isolation, locking or Npgsql retry behavior;
-  - depends on PostgreSQL-specific types, functions, collations or migration SQL.
-- Exposed MCP tools SHOULD have at least one end-to-end test through `TestServer` and a real MCP
-  client covering auth, the `X-Account-Group` header and the tool contract.
-- Tests that need external infrastructure (Docker, Postgres) MUST be tagged as such so they can be
-  run or excluded explicitly and never cause spurious failures in the default fast suite.
+- Unit tests (mocks/substitutes) are the default for pure rules and for handler orchestration.
+- Use SQLite `:memory:` when a test needs real transactions or real EF Core query filters (soft
+  delete, TPH scoping). Do NOT use EF Core's `InMemory` provider for these.
+- A real PostgreSQL integration test (`Testcontainers.PostgreSql`) is REQUIRED — a green SQLite
+  test is not enough proof — when the code:
+  - adds up money values in SQL (`SumAsync`, a translated `GroupBy`, etc.) instead of loading the
+    rows and adding them in C# `decimal`;
+  - depends on writes at the same time, transaction isolation, locks or Npgsql retry behavior;
+  - depends on types, functions, collations or migration SQL that only PostgreSQL has.
+- Each exposed MCP tool SHOULD have at least one end-to-end test with `TestServer` and a real MCP
+  client. It covers auth, the `X-Account-Group` header and the tool contract.
+- Tests that need external infrastructure (Docker, Postgres) MUST have a tag. Then we can choose
+  to run them or skip them, and they never cause random failures in the default fast test run.
 
-Rationale: SQLite and PostgreSQL differ in numeric aggregation and concurrency semantics; the
-cheapest test that can actually detect the risk is the one that MUST be written.
+Why: SQLite and PostgreSQL work differently when they add numbers and when many writes happen at
+the same time. You MUST write the cheapest test that can really find the risk.
 
 ### V. Financial Correctness by Construction
 
-- Money is always `decimal` in C# and `numeric` in PostgreSQL; `double`/`float` are forbidden for
-  amounts at every layer, including tests and intermediate calculations.
-- Dates are explicit date/time types (`DateOnly`/`DateTimeOffset` → `date`/`timestamptz`), never
-  strings. Each shared rule (next business day, `ParentCategory/Subcategory` parsing, `ActualSpend`)
-  has exactly one implementation reused everywhere.
-- Every write MUST be validated (FluentValidation, via the pipeline) before persistence; imports
-  MUST validate the source format and report skipped lines rather than fail silently.
-- Destructive operations require an explicit `confirm = true` enforced by validation, and use soft
+- Money is always `decimal` in C# and `numeric` in PostgreSQL. `double`/`float` are not allowed
+  for amounts in any layer, also in tests and in calculations in the middle.
+- Dates use real date/time types (`DateOnly`/`DateTimeOffset` → `date`/`timestamptz`), never
+  strings. Each shared rule (next business day, `ParentCategory/Subcategory` parsing,
+  `ActualSpend`) has only one implementation, and we use it everywhere.
+- Every write MUST be validated (FluentValidation, through the pipeline) before we save it.
+  Imports MUST check the source format and report the lines they skip. They must not fail
+  silently.
+- Destructive operations need an explicit `confirm = true`, checked by validation. They use soft
   delete behind a global query filter.
-- Entities never leave the application layer; transports only see DTOs/records.
+- Entities never leave the application layer. Transports only see DTOs/records.
 
-Rationale: silent precision loss, date drift or unvalidated writes produce wrong budgets that no
-one notices until reconciliation.
+Why: losing precision without a warning, dates that move, or writes with no validation make wrong
+budgets. Nobody sees them until reconciliation.
 
 ### VI. Maintainability and Simplicity
 
-- Nullable reference types enabled; file-scoped namespaces; `async`/`await` end-to-end for I/O with
-  the `Async` suffix; immutable `record` requests.
-- Consistent naming: `<Action><Entity>Command`/`Query`, `<Name>Handler`, `<Name>Validator`;
-  feature folders, not generic `Commands/`/`Handlers/` folders.
-- A single source of truth for shared constants (header names, scopes, max lengths, enum
-  mappings); no duplicated literals across layers.
-- Build with zero new compiler warnings; do not suppress warnings or analyzers without a comment
-  justifying it.
-- YAGNI: no speculative abstractions, options or layers without a spec requirement. Added
-  complexity MUST be justified in the feature's `plan.md`.
-- Dead code, commented-out code and stale TODOs are removed or tracked in `specs/backlog.md`, not
-  left in place. Temporary deviations (e.g. disabled auth middleware) MUST be documented where a
-  reader of that code will find them.
-- Hardcoded ports, URLs, connection strings and secrets are forbidden; use Aspire service
+- Nullable reference types on; file-scoped namespaces; `async`/`await` from start to end for I/O,
+  with the `Async` suffix; immutable `record` requests.
+- Same naming everywhere: `<Action><Entity>Command`/`Query`, `<Name>Handler`, `<Name>Validator`;
+  feature folders, not general `Commands/`/`Handlers/` folders.
+- Only one source of truth for shared constants (header names, scopes, max lengths, enum
+  mappings). Do not copy the same literal in many layers.
+- Build with zero new compiler warnings. Do not turn off warnings or analyzers without a comment
+  that explains why.
+- YAGNI: no abstractions, options or layers "for the future" if a spec does not ask for them. If
+  you add complexity, you MUST explain why in the feature's `plan.md`.
+- Remove dead code, commented-out code and old TODOs, or track them in `specs/backlog.md`. Do not
+  leave them in the code. Temporary exceptions (for example, auth middleware that is turned off)
+  MUST be documented where a reader of that code will find them.
+- Hardcoded ports, URLs, connection strings and secrets are not allowed. Use Aspire service
   discovery, configuration and user-secrets.
 
-Rationale: a small codebase driven heavily by an AI agent stays maintainable only if conventions
-are uniform and predictable.
+Why: a small codebase that an AI agent changes a lot stays easy to maintain only if the rules are
+the same everywhere and easy to predict.
 
 ## Quality Gates
 
-A change MAY be merged only when all of the following hold:
+We MAY merge a change only when all of these are true:
 
-1. `dotnet build` succeeds with no new warnings.
-2. `dotnet test` (default suite) is green. Infrastructure-tagged tests required by Principle IV
-   are run and green for the changes that trigger them.
-3. Every acceptance criterion in the feature's `spec.md` is checked and mapped to a test; every
-   task in `tasks.md` is done.
-4. Spec documents affected by the change are updated in the same change (Principle I).
-5. EF Core schema changes come with a new migration; applied migrations are never edited. Data
-   remapping/backfill is done by explicit SQL inside the migration and covered by a test or a
-   documented manual verification step.
-6. No secrets, credentials or real financial data appear in code, tests, fixtures or logs.
+1. `dotnet build` works with no new warnings.
+2. `dotnet test` (default suite) is green. The infrastructure-tagged tests that Principle IV
+   requires are run and green for the changes that need them.
+3. Every acceptance criterion in the feature's `spec.md` is checked and has a test. Every task in
+   `tasks.md` is done.
+4. The spec documents that the change affects are updated in the same change (Principle I).
+5. EF Core schema changes come with a new migration. We never edit a migration that was already
+   applied. Data remapping/backfill uses explicit SQL inside the migration, and a test or a
+   documented manual check covers it.
+6. No secrets, credentials or real financial data are in code, tests, fixtures or logs.
 
 ## Development Workflow
 
 - Work follows Spec-Driven Development: Specify → Clarify → Plan → Tasks → Implement. Open
-  questions in `spec.md` MUST be resolved before `plan.md` is written.
-- `plan.md` lists the tests to be written for each acceptance criterion and the fidelity level
-  chosen for each (unit / SQLite / PostgreSQL / end-to-end), justified against Principle IV.
-- Tests for a behavior are written together with (preferably before) its implementation, in the
-  same change; "tests later" tasks are not accepted.
-- Reviews (human or `/code-review`) MUST check compliance with this constitution; violations are
-  either fixed or explicitly recorded as a justified exception in `plan.md`.
-- A feature's `Status:` is set to `Implemented` and `specs/backlog.md` is updated only after all
+  questions in `spec.md` MUST be answered before we write `plan.md`.
+- `plan.md` lists the tests to write for each acceptance criterion and the fidelity level for each
+  one (unit / SQLite / PostgreSQL / end-to-end), with a reason based on Principle IV.
+- We write the tests for a behavior together with its code (better: before it), in the same
+  change. We do not accept "tests later" tasks.
+- Reviews (by a person or `/code-review`) MUST check that the change follows this constitution.
+  Problems are fixed, or written in `plan.md` as an exception with a reason.
+- We set a feature's `Status:` to `Implemented` and update `specs/backlog.md` only after all
   Quality Gates pass.
 
 ## Governance
 
-- This constitution supersedes any conflicting practice, template or guidance file. Runtime
-  development guidance lives in `CLAUDE.md` and the `specs/` documents, which MUST stay consistent
-  with it.
-- Amendments are made via `/speckit-constitution`, documented with a Sync Impact Report, reviewed,
-  and committed as a dedicated change.
-- Versioning follows semantic versioning: MAJOR for removing or redefining a principle in a
-  backward-incompatible way; MINOR for a new principle/section or materially expanded guidance;
-  PATCH for clarifications and wording.
-- Compliance is verified at every review and at the end of every feature (Quality Gates). Any
-  exception MUST be time-boxed or tracked in `specs/backlog.md`.
+- This constitution is more important than any practice, template or guide that says something
+  different. Day-to-day development guidance is in `CLAUDE.md` and the `specs/` documents, and
+  they MUST agree with it.
+- Changes to it are made with `/speckit-constitution`, documented with a Sync Impact Report,
+  reviewed, and committed as their own change.
+- Versions follow semantic versioning: MAJOR when we remove a principle or change its meaning in
+  a way that breaks the old one; MINOR for a new principle/section or much more guidance; PATCH
+  for clarifications and wording.
+- We check that work follows it at every review and at the end of every feature (Quality Gates).
+  Every exception MUST have an end date or be tracked in `specs/backlog.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-27 | **Last Amended**: 2026-09-27
+**Version**: 1.0.1 | **Ratified**: 2026-09-27 | **Last Amended**: 2026-10-01

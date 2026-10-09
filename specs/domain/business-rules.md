@@ -1,59 +1,59 @@
 # Business Rules
 
-Source of truth for calculation and query behavior. Code must match this file; change this file first.
+This file is the source of truth for how calculations and queries work. The code must do what this file says. Change this file first.
 
 ## Categories
 
-- The raw `Categoria` column of CC/CD statements is parsed into `ParentCategory/Subcategory`, split on `/` (value object `Category`).
-- A budget goal always targets a **parent** category, never a subcategory. Aggregation for a goal sums every row of that parent category, regardless of subcategory.
-- A subcategory breakdown may be produced as secondary information; it never has its own goal.
-- `list_categories` is informational only; it does not imply a goal exists.
+- We read the raw `Categoria` column of CC/CD statements and split it on `/` into `ParentCategory/Subcategory` (value object `Category`).
+- A budget goal is always for a **parent** category, never for a subcategory. To calculate a goal, we add every row of that parent category. The subcategory does not matter.
+- We can show a list by subcategory as extra information. A subcategory never has its own goal.
+- `list_categories` only gives information. It does not mean that a goal exists.
 
 ## Transaction statuses
 
-- Lifecycle: `Revision → Scheduled → Confirmed`, with `Confirmed → Scheduled` allowed as a reversal (tool pending, see backlog).
-- `Revision` rows live in `transaction_revisions`, not in `transactions`. Approval **moves** the row (insert new `transactions` row as `Scheduled`, delete the revision) atomically.
-- Each status stamps its own timestamp once and never overwrites it (`Transaction.TransitionTo`):
-  - `SubmittedForReviewAt` — copied verbatim from `transaction_revisions.CreatedAt` on approval, never regenerated.
-  - `ScheduledAt`, `ConfirmedAt` — stamped on entering that status.
-- Confirming requires current status `Scheduled`.
-- `needsConfirmation = (Status == Scheduled && ExpectedDate < today)`. Informational only; nothing changes status automatically.
+- Life cycle: `Revision → Scheduled → Confirmed`. Going back from `Confirmed → Scheduled` is also allowed (the tool is not built yet, see backlog).
+- `Revision` rows are in `transaction_revisions`, not in `transactions`. Approval **moves** the row: it adds a new `transactions` row as `Scheduled` and deletes the revision, all in one atomic step.
+- Each status writes its own timestamp one time and never changes it again (`Transaction.TransitionTo`):
+  - `SubmittedForReviewAt` — copied exactly from `transaction_revisions.CreatedAt` on approval. We never create a new value.
+  - `ScheduledAt`, `ConfirmedAt` — written when the transaction enters that status.
+- To confirm a transaction, its current status must be `Scheduled`.
+- `needsConfirmation = (Status == Scheduled && ExpectedDate < today)`. It only gives information. Nothing changes the status by itself.
 
 ## Budget goals (`get_budget_status`)
 
 1. **Status filter:** only `Confirmed`.
-2. **Type filter:** only `Expense`. Never `Income`, `Transfer` or `Payment` (card payment in CC is excluded to avoid double counting).
+2. **Type filter:** only `Expense`. Never `Income`, `Transfer` or `Payment` (we do not count the card payment in CC, so we do not count the same money two times).
 3. **Reference month:**
    - CC: `ConfirmationDate`.
-   - CD: `InvoiceDueDate` (not `ActualDate`), rolled to the next business day when it falls on a weekend.
-4. **Goal in effect** (`BudgetGoal.ResolveEffective`):
-   - `OneTime` — only its own year/month.
-   - `Monthly` — from its month onward, until a later `Monthly` for the same category supersedes it.
-   - `OneTime` beats `Monthly` for its exact month.
+   - CD: `InvoiceDueDate` (not `ActualDate`). If it is on a weekend, we move it to the next business day.
+4. **Which goal is active** (`BudgetGoal.ResolveEffective`):
+   - `OneTime` — only for its own year/month.
+   - `Monthly` — from its month and after, until a newer `Monthly` goal for the same category replaces it.
+   - For its exact month, `OneTime` wins over `Monthly`.
 5. **Formulas:**
-   - `ActualSpend` = Σ |amount| of `Confirmed` `Expense` rows, same parent category and reference month, CC + CD combined (`ActualSpendCalculator.SumForCategoryMonth`).
+   - `ActualSpend` = Σ |amount| of `Confirmed` `Expense` rows, with the same parent category and reference month, CC + CD together (`ActualSpendCalculator.SumForCategoryMonth`).
    - `RemainingBudget` = `GoalAmount − ActualSpend`.
    - `PercentUsed` = `ActualSpend / GoalAmount` (`null` when `GoalAmount = 0`).
-6. Categories without a goal in effect don't appear in `get_budget_status`.
+6. Categories with no active goal do not appear in `get_budget_status`.
 
-## Post-write budget feedback
+## Budget feedback after a write
 
-- `create_transaction` / `update_transaction` / `delete_transaction` return `remainingBudget` / `remainingBudgetPercentage` for the transaction's parent category and reference month, using the same rules as above (`ICategoryBudgetRemainingCalculator`).
-- Create/update include the transaction's own amount; delete excludes it. `null` when no goal is in effect.
-- Read tools never populate these fields.
+- `create_transaction` / `update_transaction` / `delete_transaction` return `remainingBudget` / `remainingBudgetPercentage` for the parent category and reference month of the transaction. They use the same rules as above (`ICategoryBudgetRemainingCalculator`).
+- Create/update count the amount of the transaction. Delete does not count it. The value is `null` when no goal is active.
+- Read tools never fill these fields.
 
-## Budget goal creation
+## Creating a budget goal
 
-- Rejected if `categoryId` is a subcategory or a goal already exists for that category/month.
+- We reject it if `categoryId` is a subcategory, or if a goal already exists for that category/month.
 
 ## Statement import
 
-- CSV: `;` separator, `dd/mm/yyyy` dates, dot decimal. Portuguese source headers (`Categoria`, `Data prevista`, …) are kept as-is.
-- CC vs CD parsing is inferred from `Account.Kind`, never from a caller flag.
-- Invalid lines are skipped with a warning; the valid batch commits atomically.
-- Known gaps (locked by tests, not fixed): wrong delimiter yields an all-default row instead of a warning; after one row throws, the remaining rows are dropped.
+- CSV: `;` separator, `dd/mm/yyyy` dates, dot for decimals. We keep the Portuguese headers from the source (`Categoria`, `Data prevista`, …) as they are.
+- We decide between CC and CD parsing from `Account.Kind`, never from a flag sent by the caller.
+- We skip invalid lines and show a warning. The valid lines are saved together in one atomic step.
+- Known problems (tests lock them in, they are not fixed): a wrong delimiter creates a row with all default values and no warning; after one row throws an error, we lose all the rows after it.
 
 ## Account group
 
-- `Account.Group` is free text (e.g. `HOME`, `SOM`), stamped from `X-Account-Group` on create; never a caller field.
-- **Not yet implemented:** read isolation by group. Two groups currently see the same data.
+- `Account.Group` is free text (for example `HOME`, `SOM`). On create, it comes from `X-Account-Group`. The caller never sends it as a field.
+- **Not built yet:** separating read data by group. Today, two groups see the same data.
